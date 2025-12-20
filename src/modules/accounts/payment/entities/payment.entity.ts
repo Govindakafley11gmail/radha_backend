@@ -1,0 +1,65 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+import { AccountType } from 'src/modules/master/account_types/entities/account_type.entity';
+import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
+import {
+    Entity,
+    PrimaryGeneratedColumn,
+    Column,
+    ManyToOne,
+    OneToMany,
+    CreateDateColumn,
+    UpdateDateColumn,
+} from 'typeorm';
+import { PurchaseInvoice } from '../../purchase-invoice/entities/purchase-invoice.entity';
+
+export enum PaymentStatus {
+    PENDING = 'Pending',
+    COMPLETED = 'Completed',
+    FAILED = 'Failed',
+}
+
+export enum PaymentMode {
+    CASH = 'Cash',
+    BANK = 'Bank',
+    CHEQUE = 'Cheque',
+    ONLINE = 'Online',
+}
+
+@Entity('payments') // <--- table name explicitly
+export class Payment {
+    @PrimaryGeneratedColumn()
+    id: number;
+
+    @Column({ type: 'decimal', precision: 15, scale: 2 })
+    amount: number;
+
+    @Column({ type: 'date' })
+    paymentDate: string;
+
+    @Column({ type: 'enum', enum: PaymentMode })
+    paymentMode: PaymentMode;
+
+    @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
+    status: PaymentStatus;
+
+    @ManyToOne(() => PurchaseInvoice, (invoice) => invoice.payments, { nullable: false })
+    invoice: PurchaseInvoice;
+
+    @ManyToOne(() => AccountType, { nullable: false })
+    accountType: AccountType; // Cash or Bank account
+
+    @Column({ nullable: true })
+    referenceNumber: string; // cheque number, transaction ID, etc.
+
+    @Column({ nullable: true })
+    description: string;
+
+    @OneToMany(() => AccountTransactionDetail, detail => detail.payment)
+    details: AccountTransactionDetail[];
+
+    @CreateDateColumn()
+    createdAt: Date;
+
+    @UpdateDateColumn()
+    updatedAt: Date;
+}
