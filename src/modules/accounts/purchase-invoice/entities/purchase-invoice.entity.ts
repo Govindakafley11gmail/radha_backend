@@ -1,67 +1,94 @@
 import {
-    Entity,
-    PrimaryGeneratedColumn,
-    Column,
-    ManyToOne,
-    CreateDateColumn,
-    UpdateDateColumn,
-    JoinColumn,
-    OneToMany
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  OneToMany,
+  CreateDateColumn,
+  UpdateDateColumn,
+  JoinColumn,
 } from 'typeorm';
 import { Supplier } from '../../supplier/entities/supplier.entity';
 import { AccountTransaction } from 'src/modules/public/general_transaction/account_transaction/entities/account_transaction.entity';
 import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
+import { Payment } from '../../payment/entities/payment.entity';
+import { PurchaseInvoiceDetail } from '../../purchaseinvoicedetails/entities/purchaseinvoicedetail.entity';
+// import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/taxinvoice.entity';
+
 
 @Entity('purchase_invoices')
 export class PurchaseInvoice {
-    @PrimaryGeneratedColumn('uuid')
-    id: string;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-    @Column({ unique: true })
-    invoiceNo: string;
+  @Column({ unique: true })
+  invoiceNo: string;
 
-    @ManyToOne(() => Supplier, supplier => supplier.purchaseInvoices, { onDelete: 'SET NULL' })
-    @JoinColumn({ name: 'supplier_id' })
-    supplier: Supplier;
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  freightCost: number;
 
-    @Column()
-    supplier_id: string;
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  importDuty: number;
 
-    @ManyToOne(() => AccountTransaction, transaction => transaction.purchaseInvoices, { cascade: true, nullable: true })
-    @JoinColumn({ name: 'transaction_id' })
-    transaction?: AccountTransaction;
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  scrapCost: number; // optional field if you want to track scrap value
 
-    @OneToMany(() => AccountTransactionDetail, detail => detail.purchaseInvoice)
-    details?: AccountTransactionDetail[];
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  materialCost: number; // sum of product totals without tax or charges
 
-    @Column({ type: 'date' })
-    invoiceDate: Date;
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  otherCharges: number; // freight + duty etc.
 
-    @Column({ type: 'decimal', precision: 15, scale: 2 })
-    totalAmount: number;
+  @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
+  finalCost: number; // materialCost + tax + otherCharges
 
-    @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
-    taxAmount?: number;
+  @ManyToOne(() => Supplier, supplier => supplier.purchaseInvoices)
+  @JoinColumn({ name: 'supplierId' })
+  supplier: Supplier;
 
-    @Column({ type: 'varchar', length: 200, nullable: true })
-    description?: string;
+  @Column()
+  supplierId: string;
+  
+  @OneToMany(
+    () => PurchaseInvoiceDetail,
+    detail => detail.purchaseInvoice, // links to the property in PurchaseInvoiceDetail
+    { cascade: true }
+  )
+  purchaseInvoiceDetails?: PurchaseInvoiceDetail[];
 
-    @Column({ type: 'varchar', length: 255, nullable: true })
-    invoiceFile?: string; // store file path or URL
 
-    @Column({ type: 'varchar', length: 50, default: 'Pending', nullable: true })
-    status?: string;
+  @ManyToOne(() => AccountTransaction, transaction => transaction.purchaseInvoices, { cascade: true, nullable: true })
+  @JoinColumn({ name: 'transaction_id' })
+  transaction?: AccountTransaction;
 
-    // @Column({ type: 'varchar', length: 50 })
-    // createdBy: string;
+  @OneToMany(() => AccountTransactionDetail, detail => detail.purchaseInvoice)
+  details?: AccountTransactionDetail[];
 
-    @Column({ default: false })
-    isDeleted: boolean;
+  @Column({ type: 'date' })
+  invoiceDate: Date;
 
-    @CreateDateColumn()
-    createdAt: Date;
+  @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
+  taxAmount?: number;
 
-    @UpdateDateColumn()
-    updatedAt: Date;
-    payments: any;
+  @Column({ type: 'varchar', length: 200, nullable: true })
+  description?: string;
+
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  invoiceFile?: string;
+
+  @Column({ type: 'varchar', length: 50, default: 'Pending', nullable: true })
+  status?: string;
+
+  @Column({ default: false })
+  isDeleted: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
+
+  @OneToMany(() => Payment, payment => payment.invoice)
+  payments?: Payment[];
 }
+

@@ -1,7 +1,16 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UploadedFile, UseInterceptors, Query } from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  Query,
+  BadRequestException,
+} from '@nestjs/common';
 import { PurchaseInvoiceService } from './purchase-invoice.service';
 import { CreatePurchaseInvoiceDto } from './dto/create-purchase-invoice.dto';
 import { UpdatePurchaseInvoiceDto } from './dto/update-purchase-invoice.dto';
@@ -9,81 +18,73 @@ import { PurchaseInvoice } from './entities/purchase-invoice.entity';
 
 @Controller('purchase-invoice')
 export class PurchaseInvoiceController {
-  constructor(private readonly purchaseInvoiceService: PurchaseInvoiceService) { }
+  constructor(private readonly purchaseInvoiceService: PurchaseInvoiceService) {}
 
+  // ----------------------
+  // CREATE PURCHASE INVOICE
+  // ----------------------
   @Post()
-  @UseInterceptors(
-    FileInterceptor('invoiceFile', {
-      storage: diskStorage({
-        destination: './uploads/invoices', // specific folder
-        filename: (req, file, callback) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
-      fileFilter: (req, file, callback) => {
-        // Optional: restrict file types
-        if (!file.originalname.match(/\.(pdf|jpg|jpeg|png)$/)) {
-          return callback(new Error('Only PDF and image files are allowed!'), false);
-        }
-        callback(null, true);
-      },
-    }),
-  )
-  async create(
-    @Body() createPurchaseInvoiceDto: CreatePurchaseInvoiceDto,
-    @UploadedFile() invoiceFile?: Express.Multer.File,
-  ): Promise<any> {
-    const invoiceFilePath = invoiceFile ? invoiceFile.path : undefined;
-    return await this.purchaseInvoiceService.create(createPurchaseInvoiceDto, invoiceFilePath);
+  async create(@Body() CreatePurchaseInvoiceDto: CreatePurchaseInvoiceDto): Promise<PurchaseInvoice> {
+
+
+    return await this.purchaseInvoiceService.createAndPostInvoice(CreatePurchaseInvoiceDto);
   }
 
-@Get()
-async findAll(
-  @Query('invoiceNo') invoiceNo?: string,
-  @Query('supplierName') supplierName?: string,
-  @Query('fromDate') fromDate?: string,
-  @Query('toDate') toDate?: string,
-  @Query('status') status?: string, // new status query
-): Promise<PurchaseInvoice[]> {
-  return await this.purchaseInvoiceService.findAll({ invoiceNo, supplierName, fromDate, toDate, status });
-}
+  // ----------------------
+  // UPDATE PURCHASE INVOICE
+  // ----------------------
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() body: any,
+  ): Promise<PurchaseInvoice> {
+    if (body.details && typeof body.details === 'string') {
+      try {
+        body.details = JSON.parse(body.details);
+      } catch (error) {
+        throw new BadRequestException('Invalid JSON format for details array');
+      }
+    }
 
+    const updateDto: UpdatePurchaseInvoiceDto = {
+      invoiceNo: body.invoiceNo,
+      supplierId: body.supplierId,
+      invoiceDate: body.invoiceDate ? new Date(body.invoiceDate) : undefined,
+      totalAmount: body.totalAmount ? Number(body.totalAmount) : undefined,
+      GStTaxAmount: body.GStTaxAmount ? Number(body.GStTaxAmount) : undefined,
+      description: body.description,
+      status: body.status,
+      details: body.details,
+    };
 
+    return await this.purchaseInvoiceService.update(id, updateDto);
+  }
+
+  // ----------------------
+  // GET ALL PURCHASE INVOICES
+  // ----------------------
+  @Get()
+  async findAll(
+    @Query('invoiceNo') invoiceNo?: string,
+    @Query('supplierName') supplierName?: string,
+    @Query('fromDate') fromDate?: string,
+    @Query('toDate') toDate?: string,
+    @Query('status') status?: string,
+  ): Promise<PurchaseInvoice[]> {
+    return await this.purchaseInvoiceService.findAll({ invoiceNo, supplierName, fromDate, toDate, status });
+  }
+
+  // ----------------------
+  // GET ONE PURCHASE INVOICE
+  // ----------------------
   @Get(':id')
   async findOne(@Param('id') id: string): Promise<PurchaseInvoice> {
     return await this.purchaseInvoiceService.findOne(id);
   }
 
-  @Patch(':id')
-  @UseInterceptors(
-    FileInterceptor('invoiceFile', {
-      storage: diskStorage({
-        destination: './uploads/invoices',
-        filename: (req, file, callback) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-          const ext = extname(file.originalname);
-          callback(null, `${file.fieldname}-${uniqueSuffix}${ext}`);
-        },
-      }),
-      fileFilter: (req, file, callback) => {
-        if (!file.originalname.match(/\.(pdf|jpg|jpeg|png)$/)) {
-          return callback(new Error('Only PDF and image files are allowed!'), false);
-        }
-        callback(null, true);
-      },
-    }),
-  )
-  async update(
-    @Param('id') id: string,
-    @Body() updatePurchaseInvoiceDto: UpdatePurchaseInvoiceDto,
-    @UploadedFile() invoiceFile?: Express.Multer.File,
-  ): Promise<PurchaseInvoice> {
-    const invoiceFilePath = invoiceFile ? invoiceFile.path : undefined;
-    return await this.purchaseInvoiceService.update(id, updatePurchaseInvoiceDto, invoiceFilePath);
-  }
-
+  // ----------------------
+  // DELETE PURCHASE INVOICE
+  // ----------------------
   @Delete(':id')
   async remove(@Param('id') id: string): Promise<void> {
     return await this.purchaseInvoiceService.remove(id);

@@ -32,7 +32,7 @@ export class SupplierService {
   // Find one supplier by ID
   async findOne(id: string): Promise<Supplier> {
     const supplier = await this.supplierRepository.findOne({
-      where: { id, isDeleted: false },
+      where: { supplier_id: id, isDeleted: false },
       relations: ['purchaseInvoices', 'rawMaterialReceipts'],
     });
     if (!supplier) {

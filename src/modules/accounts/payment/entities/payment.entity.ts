@@ -11,6 +11,7 @@ import {
     UpdateDateColumn,
 } from 'typeorm';
 import { PurchaseInvoice } from '../../purchase-invoice/entities/purchase-invoice.entity';
+import { RawMaterialReceipt } from 'src/modules/cost-accounting/raw-meterials/raw-material-receipt/entities/raw-material-receipt.entity';
 
 export enum PaymentStatus {
     PENDING = 'Pending',
@@ -27,8 +28,8 @@ export enum PaymentMode {
 
 @Entity('payments') // <--- table name explicitly
 export class Payment {
-    @PrimaryGeneratedColumn()
-    id: number;
+    @PrimaryGeneratedColumn('uuid')
+    id: string;
 
     @Column({ type: 'decimal', precision: 15, scale: 2 })
     amount: number;
@@ -45,7 +46,7 @@ export class Payment {
     @ManyToOne(() => PurchaseInvoice, (invoice) => invoice.payments, { nullable: false })
     invoice: PurchaseInvoice;
 
-    @ManyToOne(() => AccountType, { nullable: false })
+    @ManyToOne(() => AccountType)
     accountType: AccountType; // Cash or Bank account
 
     @Column({ nullable: true })
@@ -62,4 +63,14 @@ export class Payment {
 
     @UpdateDateColumn()
     updatedAt: Date;
+    
+    @ManyToOne(
+    () => RawMaterialReceipt,
+    (receipt) => receipt.payments,
+    { nullable: true },
+  )
+  rawMaterialReceipt?: RawMaterialReceipt;
+
+    @Column({ default: false })
+    isDeleted: boolean;
 }

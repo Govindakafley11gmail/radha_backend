@@ -1,43 +1,89 @@
 import {
-    IsString,
-    IsDateString,
-    IsOptional,
-    IsNumber,
+  IsString,
+  IsDate,
+  IsOptional,
+  IsNumber,
+  IsArray,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
+export class CreatePurchaseInvoiceDetailDto {
+  @IsString()
+  productId: string;
+
+  @IsString()
+  productType: string;
+
+  @IsOptional()
+  @IsString()
+  size?: string;
+
+  @Type(() => Number)
+  @IsNumber()
+  price: number;
+
+  @Type(() => Number)
+  @IsNumber()
+  quantity: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  total?: number;
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  taxAmount?: number;
+}
+
 export class CreatePurchaseInvoiceDto {
-    @IsString()
-    invoiceNo: string;
+  @IsString()
+  invoiceNo: string;
 
-    @IsString()
-    supplier_id: string;
+  @IsString()
+  supplierId: string;
 
-    @IsDateString()
-    invoiceDate: string;
+  @IsDate()
+  @Type(() => Date)
+  invoiceDate: Date;
 
-    @Type(() => Number)
-    @IsNumber()
-    totalAmount: number;
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  freightCost?: number;
 
-    @Type(() => Number)
-    @IsNumber()
-    @IsOptional()
-    taxAmount?: number;
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  importDuty?: number;
 
-    @IsString()
-    @IsOptional()
-    description?: string;
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  scrapQuantity?: number;
 
-    @IsString()
-    @IsOptional()
-    status?: string;
+  @Type(() => Number)
+  @IsNumber()
+  totalAmount: number;
 
-    @IsString()
-    @IsOptional()
-    accountGroupId: string;
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  GStTaxAmount?: number;
 
-    @IsString()
-    @IsOptional()
-    accountTypeId: string;
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
+
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => CreatePurchaseInvoiceDetailDto)
+  details?: CreatePurchaseInvoiceDetailDto[];
 }

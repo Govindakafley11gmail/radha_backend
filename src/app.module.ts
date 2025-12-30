@@ -15,6 +15,10 @@ import { UsersModule } from './modules/authentication/users/users.module';
 import { GeneralTransactionModule } from './modules/public/general_transaction/general_transaction.module';
 import { AccountsModule } from './modules/accounts/accounts.module';
 import { MasterModule } from './modules/master/master.module';
+import { AccountReceivableModule } from './modules/account_receivable/account_receivable.module';
+import { TaxationComplianceModule } from './modules/taxation-compliance/taxation-compliance.module';
+import { SalesRevenueModule } from './modules/sales-revenue/sales-revenue.module';
+import { CostAccountingModule } from './modules/cost-accounting/cost-accounting.module';
 dotenv.config();
 
 @Module({
@@ -40,7 +44,11 @@ dotenv.config();
     PermissionModule,
     GeneralTransactionModule,
     AccountsModule,
-    MasterModule
+    MasterModule,
+    AccountReceivableModule,
+    TaxationComplianceModule,
+    SalesRevenueModule,
+    CostAccountingModule
   ],
   controllers: [AppController],
   providers: [

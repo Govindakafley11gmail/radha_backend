@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
   Injectable,
@@ -5,101 +6,194 @@ import {
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
-import { DataSource, In } from 'typeorm';
+import { DataSource } from 'typeorm';
 import { Payment, PaymentMode } from './entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
 import { AccountType } from 'src/modules/master/account_types/entities/account_type.entity';
 import { AccountTransaction } from 'src/modules/public/general_transaction/account_transaction/entities/account_transaction.entity';
 import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
+import { PurchaseInvoice } from '../purchase-invoice/entities/purchase-invoice.entity';
 
 @Injectable()
 export class PaymentService {
   constructor(
     @InjectDataSource()
     private readonly dataSource: DataSource,
-  ) {}
+  ) { }
 
-  async create(
-    dto: CreatePaymentDto,
-  ): Promise<Payment> {
+  async create(dto: CreatePaymentDto): Promise<Payment> {
     const queryRunner = this.dataSource.createQueryRunner();
-
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1️⃣ Save Payment
-      const payment = queryRunner.manager.create(Payment, {
-        ...dto,
+      // 1️⃣ Fetch Invoice
+      const invoice = await queryRunner.manager.findOne(PurchaseInvoice, {
+        where: { id: dto.invoiceId, isDeleted: false },
       });
+      if (!invoice) throw new NotFoundException('Invoice not found');
+      if (invoice.status !== 'Posted')
+        throw new InternalServerErrorException('Only POSTED invoices can be paid');
 
-      const savedPayment = await queryRunner.manager.save(payment);
-
-      // 2️⃣ Save Account Transaction (Header)
-      const transaction = queryRunner.manager.create(AccountTransaction, {
-        accountId: savedPayment.referenceNumber, // Adjust based on your logic
-        voucher_no: `PAY-${Date.now().toString()}`,
-        voucher_amount: savedPayment.amount,
-        reference_no: savedPayment.referenceNumber || savedPayment.id.toString(),
-        description: `Payment via ${savedPayment.paymentMode} - Ref: ${savedPayment.referenceNumber}`,
-        transactionDate: savedPayment.paymentDate,
-        createdBy: 'system', // Replace with actual user if available
-      });
-
-      const savedTransaction = await queryRunner.manager.save(transaction);
-
-      // 3️⃣ Fetch Cash and Bank Account Types (for credit side)
-      const accountTypes = await queryRunner.manager.find(AccountType, {
-        where: { name: In(['Cash', 'Bank']) },
+      // 2️⃣ Fetch Ledger Accounts
+      const accountsPayable = await queryRunner.manager.findOne(AccountType, {
+        where: { name: 'Accounts Payable' },
         relations: ['group'],
       });
 
-      const cashAccount = accountTypes.find((acc) => acc.name === 'Cash');
-      const bankAccount = accountTypes.find((acc) => acc.name === 'Bank');
+      const cashOrBank = await queryRunner.manager.findOne(AccountType, {
+        where: {
+          name: dto.paymentMode === PaymentMode.CASH ? 'Cash' : 'Bank',
+        },
+        relations: ['group'],
+      });
 
-      const creditAccountType =
-        savedPayment.paymentMode === PaymentMode.CASH ? cashAccount : bankAccount;
+      const gstInput = await queryRunner.manager.findOne(AccountType, {
+        where: { name: 'GST Input' }, // GST receivable account
+        relations: ['group'],
+      });
 
-      if (!creditAccountType) {
-        throw new InternalServerErrorException('Cash or Bank account type not found');
-      }
+      if (!accountsPayable || !cashOrBank || !gstInput)
+        throw new InternalServerErrorException('Ledger accounts not properly configured');
 
-      // 4️⃣ Save Transaction Details (Debit: Supplier/Expense, Credit: Cash/Bank)
-      const details = queryRunner.manager.create(AccountTransactionDetail, [
-        {
+      // 3️⃣ Create Payment
+      const payment = queryRunner.manager.create(Payment, {
+        invoice,
+        amount: dto.amount,
+        paymentDate: dto.paymentDate,
+        paymentMode: dto.paymentMode,
+        referenceNumber: dto.referenceNumber,
+        description: dto.description,
+      });
+      const savedPayment = await queryRunner.manager.save(payment);
+
+      // 4️⃣ Create AccountTransaction (Voucher)
+      const transaction = queryRunner.manager.create(AccountTransaction, {
+        voucher_no: `PAY-${Date.now()}`,
+        voucher_amount: dto.amount,
+        referenceNo: invoice.id,
+        description: `Payment for Purchase Invoice ${invoice.invoiceNo}`,
+        transactionDate: dto.paymentDate,
+        createdBy: 'system',
+        accountId: savedPayment.id,
+      });
+      const savedTransaction = await queryRunner.manager.save(transaction);
+
+      // 5️⃣ Calculate GST & Base Amount
+      const gstAmount = invoice.taxAmount ?? 0;
+      const baseAmount = dto.amount - gstAmount;
+
+      // 6️⃣ Create Transaction Details (Double Entry)
+      const transactionDetails = [
+        // Debit Accounts Payable
+        queryRunner.manager.create(AccountTransactionDetail, {
           transaction: savedTransaction,
-          accountId: savedPayment.referenceNumber, // Typically supplier/party being paid
-          debit: savedPayment.amount,
+          accountType: accountsPayable,
+          accountGroup: accountsPayable.group,
+          debit: dto.amount,
           credit: 0,
-          description: 'Payment to supplier/party',
-          accountType: { id: savedPayment.accountType?.id }, // Party's account type
-          accountGroup: { id: savedPayment.accountType?.group?.id },
-        },
-        {
-          transaction: savedTransaction,
-          accountId: savedPayment.referenceNumber,
-          debit: 0,
-          credit: savedPayment.amount,
-          description: `${savedPayment.paymentMode} payment outflow`,
-          accountType: { id: creditAccountType.id },
-          accountGroup: { id: creditAccountType.group.id },
-        },
-      ]);
+          description: 'Supplier payment settlement',
+          accountId: savedPayment.id,
 
-      await queryRunner.manager.save(details);
+        }),
+
+        // Credit Cash/Bank (Base Amount)
+        queryRunner.manager.create(AccountTransactionDetail, {
+          transaction: savedTransaction,
+          accountType: cashOrBank,
+          accountGroup: cashOrBank.group,
+          debit: 0,
+          credit: baseAmount,
+          description: `${cashOrBank.name} payment`,
+          accountId: savedPayment.id,
+
+        }),
+
+        // Credit GST Input (Receivable)
+        queryRunner.manager.create(AccountTransactionDetail, {
+          transaction: savedTransaction,
+          accountType: gstInput,
+          accountGroup: gstInput.group,
+          debit: 0,
+          credit: gstAmount,
+          description: 'GST Input (Receivable)',
+          accountId: savedPayment.id,
+
+        }),
+      ];
+
+      await queryRunner.manager.save(transactionDetails);
+
+      // 7️⃣ Update Invoice Status if fully paid
+      if (dto.amount >= invoice.finalCost) {
+        invoice.status = 'Paid';
+        await queryRunner.manager.save(invoice);
+      }
 
       await queryRunner.commitTransaction();
       return savedPayment;
     } catch (error) {
       await queryRunner.rollbackTransaction();
-      throw error instanceof InternalServerErrorException
-        ? error
-        : new InternalServerErrorException('Failed to create payment', error);
+      throw error;
     } finally {
       await queryRunner.release();
     }
   }
+
+
+  async update(id: string, dto: Partial<CreatePaymentDto>): Promise<Payment> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+
+    let transactionStarted = false;
+
+    try {
+      // 1️⃣ Find the existing payment
+      const payment = await queryRunner.manager.findOne(Payment, {
+        where: { id },
+        relations: ['invoice', 'accountType', 'details'],
+      });
+
+      if (!payment) {
+        throw new NotFoundException(`Payment with ID ${id} not found`);
+      }
+
+      // 2️⃣ Fetch Ledger Accounts if paymentMode changes
+      // if (dto.paymentMode && dto.paymentMode !== payment.paymentMode) {
+      const cashOrBank = await queryRunner.manager.findOne(AccountType, {
+        where: { name: dto.paymentMode === PaymentMode.CASH ? 'Cash' : 'Bank' },
+        relations: ['group'],
+      });
+      if (!cashOrBank) throw new InternalServerErrorException('Ledger account not found');
+      // }
+
+      // 3️⃣ Start Transaction
+      await queryRunner.startTransaction();
+      transactionStarted = true;
+
+      // 4️⃣ Update payment fields
+      payment.amount = dto.amount ?? payment.amount;
+      payment.paymentDate = dto.paymentDate ?? payment.paymentDate;
+      payment.paymentMode = dto.paymentMode ?? payment.paymentMode;
+      payment.referenceNumber = dto.referenceNumber ?? payment.referenceNumber;
+      payment.description = dto.description ?? payment.description;
+      payment.accountType = cashOrBank;
+
+      const updatedPayment = await queryRunner.manager.save(payment);
+
+      // 5️⃣ Update associated AccountTransaction
+
+      // 7️⃣ Commit
+      await queryRunner.commitTransaction();
+      return updatedPayment;
+    } catch (error) {
+      if (transactionStarted) await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
+  }
+
 
   async findAll(params: any = {}): Promise<{
     data: Payment[];
@@ -187,7 +281,7 @@ export class PaymentService {
     };
   }
 
-  async findOne(id: number): Promise<Payment> {
+  async findOne(id: string): Promise<Payment> {
     const payment = await this.dataSource
       .getRepository(Payment)
       .findOne({
@@ -202,14 +296,43 @@ export class PaymentService {
     return payment;
   }
 
-  async update(id: number, updatePaymentDto: UpdatePaymentDto): Promise<Payment> {
-    const payment = await this.findOne(id);
-    Object.assign(payment, updatePaymentDto);
-    return this.dataSource.getRepository(Payment).save(payment);
-  }
+  async remove(id: string): Promise<void> {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-  async remove(id: number): Promise<void> {
-    const payment = await this.findOne(id);
-    await this.dataSource.getRepository(Payment).remove(payment);
+    try {
+      // 1️⃣ Soft delete the payment
+      const payment = await queryRunner.manager.findOne(Payment, { where: { id } });
+      if (!payment) throw new NotFoundException(`Payment with ID ${id} not found`);
+
+      payment.isDeleted = true;
+      await queryRunner.manager.save(payment);
+
+      // 2️⃣ Soft delete associated AccountTransaction
+      const transaction = await queryRunner.manager.findOne(AccountTransaction, {
+        where: { accountId: id.toString() },
+      });
+      if (transaction) {
+        transaction.isDeleted = true;
+        await queryRunner.manager.save(transaction);
+      }
+      // 3️⃣ Soft delete associated AccountTransactionDetail
+      const details = await queryRunner.manager.find(AccountTransactionDetail, {
+        where: { accountId: id.toString() },
+      });
+      if (details.length > 0) {
+        details.forEach(d => (d.isDeleted = true));
+        await queryRunner.manager.save(details);
+      }
+
+      await queryRunner.commitTransaction();
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    } catch (error: any) {
+      await queryRunner.rollbackTransaction();
+      throw new InternalServerErrorException('Failed to delete payment');
+    } finally {
+      await queryRunner.release();
+    }
   }
 }

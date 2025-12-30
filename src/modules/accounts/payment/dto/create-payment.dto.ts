@@ -1,33 +1,28 @@
-import { IsEnum, IsNumber, IsOptional, IsString, IsDateString, IsArray, ValidateNested, IsInt, Min } from 'class-validator';
-import { Type } from 'class-transformer';
-import { PaymentMode, PaymentStatus } from '../entities/payment.entity'; // Adjust path if needed
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsDateString,
+  Min,
+} from 'class-validator';
+import { PaymentMode, PaymentStatus } from '../entities/payment.entity';
 
-export class PaymentDetailDto {
-  @IsInt()
-  @Min(1)
-  invoiceId: number;
-
-  @IsNumber({ maxDecimalPlaces: 2 })
-  @Min(0)
-  amount: number;
-
-  @IsOptional()
-  @IsString()
-  remarks?: string;
-}
-
+// DTO for creating a payment
 export class CreatePaymentDto {
-  // The party/supplier/account being paid (usually a foreign key to Account or Party entity)
-  @IsInt()
-  @Min(1)
-  paidTo: number;
+  @IsString()
+  id: string;
+  // The invoice being paid
+  @IsString()
+  invoiceId: string;
 
   // Total payment amount
   @IsNumber({ maxDecimalPlaces: 2 })
   @Min(0)
   amount: number;
 
-  // Payment mode: Cash, Bank, Cheque, UPI, etc.
+  
+  // Payment mode: Cash, Bank, Cheque, Online, etc.
   @IsEnum(PaymentMode)
   paymentMode: PaymentMode;
 
@@ -43,22 +38,9 @@ export class CreatePaymentDto {
   // Optional notes or description
   @IsOptional()
   @IsString()
-  notes?: string;
+  description?: string;
 
-  // If paying against specific invoices (partial/full payments)
-  @IsOptional()
-  @IsArray()
-  @ValidateNested({ each: true })
-  @Type(() => PaymentDetailDto)
-  invoicePayments?: PaymentDetailDto[];
-
-  // Optional file path for uploaded proof (cheque image, bank statement, etc.)
-  // This is usually set by the controller after file upload
-  @IsOptional()
-  @IsString()
-  paymentProof?: string;
-
-  // Optional status (defaults to 'COMPLETED' or 'POSTED' in service)
+  // Optional status (defaults to COMPLETED in service)
   @IsOptional()
   @IsEnum(PaymentStatus)
   status?: PaymentStatus;

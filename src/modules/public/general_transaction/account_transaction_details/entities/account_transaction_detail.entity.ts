@@ -28,16 +28,12 @@ export class AccountTransactionDetail {
   @JoinColumn({ name: 'account_group_id' })
   accountGroup?: AccountGroup;
 
-  @Column({ nullable: true })
-  accountGroupId?: string;
 
   // ---------------- Account Type ----------------
   @ManyToOne(() => AccountType)
   @JoinColumn({ name: 'account_type_id' })
   accountType?: AccountType;
 
-  @Column({ nullable: true })
-  accountTypeId?: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
   debit: number;
@@ -65,3 +61,4 @@ purchaseInvoice?: PurchaseInvoice;
   @JoinColumn({ name: 'payment_id' })
   payment?: Payment;
 }
+

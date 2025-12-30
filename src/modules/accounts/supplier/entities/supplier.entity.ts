@@ -11,7 +11,7 @@ import { PurchaseInvoice } from '../../purchase-invoice/entities/purchase-invoic
 @Entity('suppliers')
 export class Supplier {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  supplier_id: string;
 
   @Column({ unique: true })
   name: string;
