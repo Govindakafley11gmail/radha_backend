@@ -15,7 +15,7 @@ export class LaborCost {
   @JoinColumn({ name: 'batch_id' })
   batch: ProductionBatch;
 
-  @Column('decimal', { precision: 10, scale: 2 })
+  @Column('decimal', { precision: 10, scale: 2 , nullable: true})
   hoursWorked: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
