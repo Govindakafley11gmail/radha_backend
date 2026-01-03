@@ -180,7 +180,48 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
   async generateReceipt(id: string, res: any): Promise<any> {
     const receipt = await this.findOne(id);
     console.log("receipt", receipt)
-    await this.pdfService.generatePDF(receipt, res);
+  const rawMaterialArray = [
+  {
+    receiptId: receipt.id,
+    receiptNo: receipt.receipt_no,
+    receivedDate: receipt.receivedDate,
+
+    material: {
+      id: receipt.rawMaterial.id,
+      name: receipt.rawMaterial.name,
+      unit: receipt.rawMaterial.unit,
+      standardCost: receipt.rawMaterial.standard_cost,
+    },
+
+    supplier: {
+      id: receipt.supplier.supplier_id,
+      name: receipt.supplier.name,
+      phone: receipt.supplier.phone_no,
+      email: receipt.supplier.email,
+    },
+
+    invoice: {
+      id: receipt.purchaseInvoice.id,
+      invoiceNo: receipt.purchaseInvoice.invoiceNo,
+      invoiceDate: receipt.purchaseInvoice.invoiceDate,
+      finalCost: receipt.purchaseInvoice.finalCost,
+      taxAmount: receipt.purchaseInvoice.taxAmount,
+    },
+
+    quantityReceived: receipt.quantityReceived,
+    totalUnitCost: receipt.total_unit_cost,
+    freightCost: receipt.freightCost,
+    importDuty: receipt.importDuty,
+    scrapQuantity: receipt.scrapQuantity,
+    gstTaxAmount: receipt.gst_tax_amount,
+    totalCost: receipt.totalCost,
+
+    remarks: receipt.payment_remarks,
+    documentPath: receipt.documentPath,
+  },
+];
+
+    await this.pdfService.generatePDF(rawMaterialArray, res);
 
 
     return receipt;

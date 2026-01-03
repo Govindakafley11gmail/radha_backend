@@ -7,6 +7,7 @@ import {
   OneToMany
 } from 'typeorm';
 import { PurchaseInvoice } from '../../purchase-invoice/entities/purchase-invoice.entity';
+import { RawMaterialReceipt } from 'src/modules/cost-accounting/raw-meterials/raw-material-receipt/entities/raw-material-receipt.entity';
 
 @Entity('suppliers')
 export class Supplier {
@@ -59,6 +60,6 @@ export class Supplier {
   @OneToMany(() => PurchaseInvoice, invoice => invoice.supplier)
   purchaseInvoices: PurchaseInvoice[];
 
-  // @OneToMany(() => RawMaterialReceipt, receipt => receipt.supplier)
-  // rawMaterialReceipts: RawMaterialReceipt[];
+  @OneToMany(() => RawMaterialReceipt, receipt => receipt.supplier)
+  rawMaterialReceipts: RawMaterialReceipt[];
 }

@@ -129,6 +129,7 @@ async findAll(@Query('search') search?: string) {
   @Get(':id/generate')
   async generateReceipt(@Param('id') id: string, @Res() res: Response) {
     try {
+      
       await this.rawMaterialReceiptService.generateReceipt(id, res);
     } catch (error) {
       res.status(HttpStatus.BAD_REQUEST).json({
