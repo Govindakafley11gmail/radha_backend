@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Machine } from './entities/machine.entity';
@@ -12,39 +12,64 @@ export class MachineService {
     private readonly machineRepo: Repository<Machine>,
   ) {}
 
-  // ✅ Create Machine
+  // Create a new machine
   async create(createMachineDto: CreateMachineDto): Promise<Machine> {
+    const existing = await this.machineRepo.findOne({
+      where: { name: createMachineDto.name },
+    });
+    if (existing) {
+      throw new ConflictException(
+        `Machine with name "${createMachineDto.name}" already exists`,
+      );
+    }
+
     const machine = this.machineRepo.create(createMachineDto);
     return await this.machineRepo.save(machine);
   }
 
-  // ✅ Get all Machines
+  // Get all machines
   async findAll(): Promise<Machine[]> {
     return await this.machineRepo.find({
-      order: { id: 'DESC' },
+      relations: ['usageCosts'],
+      order: { createdAt: 'DESC' },
     });
   }
 
-  // ✅ Get single Machine
-  async findOne(id: number): Promise<Machine> {
+  // Get a single machine by UUID
+  async findOne(id: string): Promise<Machine> {
     const machine = await this.machineRepo.findOne({
-      where: { id },
+      where: { id }, // ✅ id is string UUID
+      relations: ['usageCosts'],
     });
+
     if (!machine) {
       throw new NotFoundException(`Machine with ID ${id} not found`);
     }
     return machine;
   }
 
-  // ✅ Update Machine
-  async update(id: number, updateMachineDto: UpdateMachineDto): Promise<Machine> {
+  // Update machine
+  async update(id: string, updateMachineDto: UpdateMachineDto): Promise<Machine> {
     const machine = await this.findOne(id);
+
+    // Check if name is being updated and is unique
+    if (updateMachineDto.name && updateMachineDto.name !== machine.name) {
+      const existing = await this.machineRepo.findOne({
+        where: { name: updateMachineDto.name },
+      });
+      if (existing) {
+        throw new ConflictException(
+          `Machine with name "${updateMachineDto.name}" already exists`,
+        );
+      }
+    }
+
     Object.assign(machine, updateMachineDto);
     return await this.machineRepo.save(machine);
   }
 
-  // ✅ Remove Machine
-  async remove(id: number): Promise<void> {
+  // Remove machine
+  async remove(id: string): Promise<void> {
     const machine = await this.findOne(id);
     await this.machineRepo.remove(machine);
   }

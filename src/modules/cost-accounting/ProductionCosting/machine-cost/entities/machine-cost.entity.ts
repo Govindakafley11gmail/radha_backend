@@ -13,8 +13,8 @@ import { ProductionBatch } from '../../production-batch/entities/production-batc
 @Entity('machine_usage_costs')
 @Index(['machine', 'batch'])
 export class MachineUsageCost {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   // Machine reference
   @ManyToOne(() => Machine, (machine) => machine.usageCosts, {

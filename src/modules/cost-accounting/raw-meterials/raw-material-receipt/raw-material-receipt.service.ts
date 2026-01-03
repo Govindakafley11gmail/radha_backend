@@ -179,7 +179,6 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
   }
   async generateReceipt(id: string, res: any): Promise<any> {
     const receipt = await this.findOne(id);
-    console.log("receipt", receipt)
   const rawMaterialArray = [
   {
     receiptId: receipt.id,
@@ -219,7 +218,9 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
     remarks: receipt.payment_remarks,
     documentPath: receipt.documentPath,
   },
-];
+]
+
+    console.log("receipt", rawMaterialArray)
 
     await this.pdfService.generatePDF(rawMaterialArray, res);
 

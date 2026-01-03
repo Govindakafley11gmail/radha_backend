@@ -1,23 +1,17 @@
+// src/production-batch/production-batch.module.ts
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProductionBatchService } from './production-batch.service';
 import { ProductionBatchController } from './production-batch.controller';
-import { ProductionBatch } from './entities/production-batch.entity'
-import { OtherProductionCost } from '../other-production-cost/entities/other-production-cost.entity';
-import { LaborCost } from '../labor-cost/entities/labor-cost.entity';
-import { MachineUsageCost } from '../machine-cost/entities/machine-cost.entity';
+import { ProductionBatch } from './entities/production-batch.entity';
+import { RawMaterialCost } from '../../raw-meterials/raw-material-cost/entities/raw-material-cost.entity';
+import { RawMaterial } from '../../raw-meterials/raw-material/entities/raw-material.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ProductionBatch,
-      MachineUsageCost,
-      LaborCost,
-      OtherProductionCost,
-    ]),
+    TypeOrmModule.forFeature([ProductionBatch, RawMaterialCost, RawMaterial]),
   ],
   controllers: [ProductionBatchController],
   providers: [ProductionBatchService],
-  exports: [ProductionBatchService],
 })
 export class ProductionBatchModule {}

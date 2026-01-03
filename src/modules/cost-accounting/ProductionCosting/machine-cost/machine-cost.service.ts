@@ -43,8 +43,8 @@ export class MachineCostService {
         hoursUsed: dto.hoursUsed,
         operatingCost,
         depreciation,
-        maintenanceCost: 0,
-        powerCost: 0,
+        maintenanceCost: dto.operatingCost,
+        powerCost: dto.powerCost,
       });
 
       return await manager.save(usageCost);
@@ -55,13 +55,13 @@ export class MachineCostService {
     return await this.usageCostRepo.find({ relations: ['machine', 'batch'], order: { transactionDate: 'DESC' } });
   }
 
-  async findOne(id: number): Promise<MachineUsageCost> {
+  async findOne(id: string): Promise<MachineUsageCost> {
     const usage = await this.usageCostRepo.findOne({ where: { id }, relations: ['machine', 'batch'] });
     if (!usage) throw new NotFoundException(`MachineUsageCost ${id} not found`);
     return usage;
   }
 
-  async update(id: number, dto: UpdateMachineCostDto): Promise<MachineUsageCost> {
+  async update(id: string, dto: UpdateMachineCostDto): Promise<MachineUsageCost> {
     const usage = await this.findOne(id);
 
     if (dto.hoursUsed !== undefined) {
@@ -73,7 +73,7 @@ export class MachineCostService {
     return await this.usageCostRepo.save(usage);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const usage = await this.findOne(id);
     await this.usageCostRepo.remove(usage);
   }

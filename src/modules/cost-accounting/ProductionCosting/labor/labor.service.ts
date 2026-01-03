@@ -27,7 +27,7 @@ export class LaborService {
   }
 
   // ✅ Get single labor
-  async findOne(id: number): Promise<Labor> {
+  async findOne(id: string): Promise<Labor> {
     const labor = await this.laborRepository.findOne({
       where: { id },
       relations: ['laborCosts'],
@@ -42,7 +42,7 @@ export class LaborService {
 
   // ✅ Update labor
   async update(
-    id: number,
+    id: string,
     updateLaborDto: UpdateLaborDto,
   ): Promise<Labor> {
     const labor = await this.findOne(id);
@@ -53,7 +53,7 @@ export class LaborService {
   }
 
   // ✅ Delete labor
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const labor = await this.findOne(id);
     await this.laborRepository.remove(labor);
   }

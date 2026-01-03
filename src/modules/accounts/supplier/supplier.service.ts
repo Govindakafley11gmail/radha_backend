@@ -4,6 +4,8 @@ import { Repository } from 'typeorm';
 import { Supplier } from './entities/supplier.entity';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
+import { existsSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class SupplierService {
@@ -57,4 +59,18 @@ export class SupplierService {
     supplier.isDeleted = true;
     await this.supplierRepository.save(supplier);
   }
-}
+  async downloadMouFile(id: string): Promise<{ filePath: string; fileName: string }> {
+    const supplier = await this.supplierRepository.findOne({ where: { supplier_id:id } });
+    if (!supplier) throw new NotFoundException(`Supplier ${id} not found`);
+
+    if (!supplier.mouFile) {
+      throw new NotFoundException(`No MOU file uploaded for supplier ${supplier.name}`);
+    }
+
+    const filePath = join(process.cwd(), 'uploads', supplier.supplier_id);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException(`File not found on server: ${supplier.supplier_id}`);
+    }
+
+    return { filePath, fileName: supplier.supplier_id };
+  }}

@@ -21,8 +21,8 @@ export enum OverheadType {
 @Entity('other_production_costs')
 @Index(['batch', 'costType'])
 export class OtherProductionCost {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   // ✅ Link to ProductionBatch
   @ManyToOne(
