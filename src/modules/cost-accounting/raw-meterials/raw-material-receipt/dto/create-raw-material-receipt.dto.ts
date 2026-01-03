@@ -1,4 +1,5 @@
 import { IsNotEmpty, IsNumber, IsOptional, IsDateString, IsString } from 'class-validator';
+import { Type } from 'class-transformer'; // <-- import Type
 
 export class CreateRawMaterialReceiptDto {
   @IsNotEmpty()
@@ -9,8 +10,9 @@ export class CreateRawMaterialReceiptDto {
   @IsString()
   supplier_id: string;
 
-  @IsNumber()
   @IsOptional()
+  @IsNumber()
+  @Type(() => Number) // <-- convert to number
   gst_tax_amount?: number;
 
   @IsNotEmpty()
@@ -19,29 +21,39 @@ export class CreateRawMaterialReceiptDto {
 
   @IsNotEmpty()
   @IsNumber()
+  @Type(() => Number)
   quantity_received: number;
 
   @IsNotEmpty()
   @IsNumber()
+  @Type(() => Number)
   total_unit_cost: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   freight_cost?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   import_duty?: number;
 
   @IsOptional()
   @IsNumber()
+  @Type(() => Number)
   scrap_quantity?: number;
 
   @IsNotEmpty()
   @IsNumber()
-  total_cost: number; // Can be calculated as quantity_received*unit_cost + freight_cost + import_duty - scrap_value
+  @Type(() => Number)
+  total_cost: number;
 
   @IsOptional()
   @IsDateString()
-  received_date?: string; // Optional, defaults to today if not provided
+  received_date?: string;
+
+  @IsOptional()
+  @IsString()
+  payment_remarks: string;
 }

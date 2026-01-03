@@ -25,6 +25,9 @@ export class PurchaseInvoiceDetail {
   @Column()
   productType: string;
 
+    @Column({ nullable: true })
+    productCode: string;
+
   @Column({ nullable: true })
   size?: string;
 

@@ -13,18 +13,21 @@ import { AccountTransactionDetail } from 'src/modules/public/general_transaction
 import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/taxinvoice.entity';
 import { PurchaseInvoiceDetail } from '../purchaseinvoicedetails/entities/purchaseinvoicedetail.entity';
 import { Supplier } from '../supplier/entities/supplier.entity';
+import { AccountType } from 'src/modules/master/account_types/entities/account_type.entity';
 
 @Injectable()
 export class PurchaseInvoiceService {
   constructor(
     @InjectRepository(PurchaseInvoice)
     private readonly purchaseInvoiceRepository: Repository<PurchaseInvoice>,
-    private readonly dataSource: DataSource, // ✅ add this
-
+    @InjectRepository(AccountType)
+    private readonly accountTypeRepository: Repository<AccountType>,
+    private readonly dataSource: DataSource,
   ) { }
 
   async createAndPostInvoice(
     createDto: CreatePurchaseInvoiceDto,
+    userId: string
   ): Promise<PurchaseInvoice> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -39,7 +42,7 @@ export class PurchaseInvoiceService {
 
       // 2️⃣ Calculate totals
       let materialCost = 0;
-      let totalTax = createDto.GStTaxAmount ?? 0; // one tax only
+      let totalTax = createDto.GStTaxAmount ?? 0;
       let otherCharges = (createDto.freightCost ?? 0) + (createDto.importDuty ?? 0);
 
       if (createDto.details?.length) {
@@ -52,19 +55,15 @@ export class PurchaseInvoiceService {
 
       // 3️⃣ Create purchase invoice
       const invoice = queryRunner.manager.create(PurchaseInvoice, {
-        supplier, // ✅ assign the entity itself
+        supplier,
         invoiceNo: createDto.invoiceNo,
         invoiceDate: createDto.invoiceDate,
         dueDate: createDto.invoiceDate,
         finalCost,
         taxAmount: totalTax,
-        // freightCost: createDto.freightCost ?? 0,
-        // importDuty: createDto.importDuty ?? 0,
-        status: 'Posted',
+        status: 'under_process',
         isDeleted: false,
       });
-
-
       const savedInvoice = await queryRunner.manager.save(invoice);
 
       // 4️⃣ Create invoice details
@@ -74,6 +73,7 @@ export class PurchaseInvoiceService {
             purchaseInvoice: savedInvoice,
             productId: d.productId,
             productType: d.productType,
+            productCode: d.productCode,
             size: d.size,
             price: d.price,
             quantity: d.quantity,
@@ -108,51 +108,83 @@ export class PurchaseInvoiceService {
         voucher_amount: savedInvoice.finalCost,
         description: `Purchase Invoice ${savedInvoice.invoiceNo}`,
         transactionDate: savedInvoice.invoiceDate,
-        createdBy: '00000000-0000-0000-0000-000000000001',
-        updatedBy: '00000000-0000-0000-0000-000000000001',
+        createdBy: userId,
+        updatedBy: userId,
       });
       const savedTransaction = await queryRunner.manager.save(transaction);
 
+      // 7️⃣ Map account types and groups (if needed)
+      const accountTypes = await this.accountTypeRepository.find({
+        where: [
+          { name: 'Inventory' },
+          { name: 'Other Charges' },
+          { name: 'GST Input' },
+          { name: 'Accounts Payable' },
+        ],
+        relations: ['group'],
+      });
+
+      const accountMap: Record<string, { id: string; groupId?: string }> = {};
+      accountTypes.forEach(acc => {
+        accountMap[acc.name] = {
+          id: acc.id,
+          groupId: acc.group?.id,
+        };
+      });
+
+      // 8️⃣ Prepare GL mappings
       const glMappings = [
         {
           accountCode: 'INVENTORY',
           debit: materialCost,
           credit: 0,
           description: 'Purchase / Inventory',
+          groupId: accountMap['Inventory']?.groupId,
+          accountTypeID: accountMap['Inventory']?.id,
         },
         {
           accountCode: 'OTHER_CHARGES',
           debit: otherCharges,
           credit: 0,
           description: 'Freight & Import Duty',
+          groupId: accountMap['Other Charges']?.groupId,
+          accountTypeID: accountMap['Other Charges']?.id,
         },
         {
           accountCode: 'GST_INPUT',
           debit: totalTax,
           credit: 0,
           description: 'GST_INPUT',
+          groupId: accountMap['GST Input']?.groupId,
+          accountTypeID: accountMap['GST Input']?.id,
         },
         {
           accountCode: 'ACCOUNTS_PAYABLE',
           debit: 0,
           credit: finalCost,
           description: 'Supplier Payable',
+          groupId: accountMap['Accounts Payable']?.groupId,
+          accountTypeID: accountMap['Accounts Payable']?.id,
         },
-
       ];
+      // 9️⃣ Create transaction details (TypeScript-safe)
+      const transactionDetails: AccountTransactionDetail[] = [];
 
-
-      const transactionDetails = glMappings.map(line =>
-        queryRunner.manager.create(AccountTransactionDetail, {
-          transaction: savedTransaction,
+      for (const line of glMappings) {
+        const detail = queryRunner.manager.create(AccountTransactionDetail, {
+          transaction: savedTransaction,              // relation object
           accountId: savedInvoice.id,
+          accountGroup: line.groupId ? { id: line.groupId } : undefined, // relation object
+          accountType: line.accountTypeID ? { id: line.accountTypeID } : undefined, // relation object
           accountCode: line.accountCode,
           debit: line.debit,
           credit: line.credit,
           description: line.description,
-        }),
-      );
+        });
+        transactionDetails.push(detail);
+      }
 
+      // save all details
       await queryRunner.manager.save(transactionDetails);
 
       await queryRunner.commitTransaction();
@@ -164,6 +196,11 @@ export class PurchaseInvoiceService {
       await queryRunner.release();
     }
   }
+
+  // ... other methods remain unchanged
+
+
+
 
   async findAll(search?: {
     invoiceNo?: string;
@@ -241,6 +278,16 @@ export class PurchaseInvoiceService {
 
       invoice.isDeleted = true;
       await queryRunner.manager.save(invoice);
+
+      // 4️⃣ Soft delete associated PurchaseInvoiceDetail
+      const invoiceDetails = await queryRunner.manager.find(PurchaseInvoiceDetail, {
+        where: { purchaseInvoice: { id } },
+      });
+
+      if (invoiceDetails.length > 0) {
+        invoiceDetails.forEach(d => (d.isDeleted = true));
+        await queryRunner.manager.save(invoiceDetails);
+      }
 
       // 2️⃣ Soft delete associated AccountTransaction
       const transaction = await queryRunner.manager.findOne(AccountTransaction, {

@@ -21,7 +21,7 @@ export class RawMaterialService {
     return await this.rawMaterialRepository.find();
   }
 
-  async findOne(id: number): Promise<RawMaterial> {
+  async findOne(id: string): Promise<RawMaterial> {
     const rawMaterial = await this.rawMaterialRepository.findOne({ where: { id: id.toString() } });
     if (!rawMaterial) {
       throw new NotFoundException(`RawMaterial with ID ${id} not found`);
@@ -29,13 +29,13 @@ export class RawMaterialService {
     return rawMaterial;
   }
 
-  async update(id: number, updateRawMaterialDto: UpdateRawMaterialDto): Promise<RawMaterial> {
+  async update(id: string, updateRawMaterialDto: UpdateRawMaterialDto): Promise<RawMaterial> {
     const rawMaterial = await this.findOne(id);
     Object.assign(rawMaterial, updateRawMaterialDto);
     return await this.rawMaterialRepository.save(rawMaterial);
   }
 
-  async remove(id: number): Promise<void> {
+  async remove(id: string): Promise<void> {
     const rawMaterial = await this.findOne(id);
     await this.rawMaterialRepository.remove(rawMaterial);
   }

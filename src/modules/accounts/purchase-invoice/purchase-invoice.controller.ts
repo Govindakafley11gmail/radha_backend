@@ -11,6 +11,7 @@ import {
   Query,
   BadRequestException,
   HttpStatus,
+  Req,
 } from '@nestjs/common';
 import { PurchaseInvoiceService } from './purchase-invoice.service';
 import { CreatePurchaseInvoiceDto } from './dto/create-purchase-invoice.dto';
@@ -22,15 +23,17 @@ const responseService = new ResponseService();
 
 @Controller('purchase-invoice')
 export class PurchaseInvoiceController {
-  constructor(private readonly purchaseInvoiceService: PurchaseInvoiceService) {}
+  constructor(private readonly purchaseInvoiceService: PurchaseInvoiceService) { }
 
   // ----------------------
   // CREATE PURCHASE INVOICE
   // ----------------------
   @Post()
-  async create(@Body() createPurchaseInvoiceDto: CreatePurchaseInvoiceDto) {
+  async create(@Body() createPurchaseInvoiceDto: CreatePurchaseInvoiceDto, @Req() req) {
     try {
-      const invoice = await this.purchaseInvoiceService.createAndPostInvoice(createPurchaseInvoiceDto);
+      const userId = req.user.id; // <-- user ID from JWT payload
+
+      const invoice = await this.purchaseInvoiceService.createAndPostInvoice(createPurchaseInvoiceDto, userId);
       return responseService.success(invoice, 'Purchase invoice created successfully', HttpStatus.CREATED);
     } catch (error) {
       return responseService.error(

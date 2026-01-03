@@ -41,7 +41,7 @@ export class RawMaterialController {
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
-      const rawMaterial = await this.rawMaterialService.findOne(+id);
+      const rawMaterial = await this.rawMaterialService.findOne(id);
       return responseService.success(rawMaterial, 'Raw material fetched successfully', HttpStatus.OK);
     } catch (error) {
       return responseService.error(
@@ -55,7 +55,7 @@ export class RawMaterialController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateRawMaterialDto: UpdateRawMaterialDto) {
     try {
-      const updatedRawMaterial = await this.rawMaterialService.update(+id, updateRawMaterialDto);
+      const updatedRawMaterial = await this.rawMaterialService.update(id, updateRawMaterialDto);
       return responseService.success(updatedRawMaterial, 'Raw material updated successfully', HttpStatus.OK);
     } catch (error) {
       return responseService.error(
@@ -69,7 +69,7 @@ export class RawMaterialController {
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
-      await this.rawMaterialService.remove(+id);
+      await this.rawMaterialService.remove(id);
       return responseService.success(null, 'Raw material removed successfully', HttpStatus.OK);
     } catch (error) {
       return responseService.error(

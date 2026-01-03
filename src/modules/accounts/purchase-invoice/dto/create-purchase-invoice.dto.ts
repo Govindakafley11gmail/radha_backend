@@ -15,6 +15,9 @@ export class CreatePurchaseInvoiceDetailDto {
   @IsString()
   productType: string;
 
+  @IsString()
+  productCode: string;
+  
   @IsOptional()
   @IsString()
   size?: string;

@@ -48,7 +48,7 @@ export class RawMaterialReceipt {
     totalCost: number; // Can be computed as (quantityReceived * unitCost + freightCost + importDuty - scrapValue)
 
     @Column({ type: 'text', nullable: true })
-    remarks?: string;
+    payment_remarks?: string;
 
     @Column({ type: 'decimal', nullable: true })
     gst_tax_amount: number;
@@ -65,4 +65,7 @@ export class RawMaterialReceipt {
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;
+
+    @Column({nullable:true})
+    documentPath?:string;
 }

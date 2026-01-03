@@ -26,13 +26,14 @@ export class RawMaterialReceiptService {
   // ================= CREATE AND POST RAW MATERIAL RECEIPT =================
   async createAndPostReceipt(
     createDto: CreateRawMaterialReceiptDto,
+    documentPath?: string, // new optional param
   ): Promise<RawMaterialReceipt> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1️⃣ Fetch related entities
+
       const rawMaterial = await queryRunner.manager.findOne(RawMaterial, {
         where: { id: createDto.raw_material_id },
       });
@@ -48,31 +49,31 @@ export class RawMaterialReceiptService {
       });
       if (!purchaseInvoice) throw new NotFoundException('Purchase Invoice not found');
 
-      // 2️⃣ Calculate total cost
-      const materialCost = createDto.total_unit_cost ;
+      const materialCost = createDto.total_unit_cost;
       const freightDuty = (createDto.freight_cost ?? 0) + (createDto.import_duty ?? 0);
       const purchaseTax = createDto.gst_tax_amount ?? 0;
-
       const totalCost = materialCost + freightDuty + purchaseTax;
 
-      // 3️⃣ Create Raw Material Receipt
       const receipt = queryRunner.manager.create(RawMaterialReceipt, {
         rawMaterial,
         supplier,
-
         purchaseInvoice,
         quantityReceived: createDto.quantity_received,
         total_unit_cost: createDto.total_unit_cost,
         freightCost: createDto.freight_cost ?? 0,
         importDuty: createDto.import_duty ?? 0,
         scrapQuantity: createDto.scrap_quantity ?? 0,
+        gst_tax_amount: createDto.gst_tax_amount,
         purchaseTaxAmount: purchaseTax,
+        payment_remarks: createDto.payment_remarks,
         totalCost,
         receipt_no: `REC-${new Date().toDateString()}`,
         receivedDate: createDto.received_date ? new Date(createDto.received_date) : new Date(),
+        documentPath: documentPath ?? undefined, // <-- make sure null is converted to undefined
       });
-      const savedReceipt = await queryRunner.manager.save(receipt)
+      const savedReceipt = await queryRunner.manager.save(receipt);
 
+      // Optionally create a payment entry
       const payment = queryRunner.manager.create(Payment, {
         invoice: purchaseInvoice,
         amount: totalCost,
@@ -80,8 +81,10 @@ export class RawMaterialReceiptService {
         status: PaymentStatus.PENDING,
         paymentMode: PaymentMode.CASH,
         description: `Payment against Invoice ${purchaseInvoice.invoiceNo}`,
-      })
-        await queryRunner.manager.save(payment);
+        documentPath: documentPath ?? undefined,
+
+      });
+      await queryRunner.manager.save(payment);
 
       await queryRunner.commitTransaction();
       return savedReceipt;
@@ -92,18 +95,35 @@ export class RawMaterialReceiptService {
       await queryRunner.release();
     }
   }
+
   // ================= FIND ALL =================
-  async findAll(): Promise<RawMaterialReceipt[]> {
-    return this.receiptRepository.find({
-      relations: ['rawMaterial', 'supplier', 'purchaseInvoice'],
-    });
+async findAll(search?: string): Promise<RawMaterialReceipt[]> {
+  const qb = this.receiptRepository
+    .createQueryBuilder('receipt')
+    .leftJoinAndSelect('receipt.rawMaterial', 'rawMaterial')
+    .leftJoinAndSelect('receipt.supplier', 'supplier')
+    .leftJoinAndSelect('receipt.purchaseInvoice', 'invoice');
+
+  if (search) {
+    qb.andWhere(
+      `
+      invoice.invoiceNo ILIKE :search
+      OR supplier.name ILIKE :search
+      `,
+      { search: `%${search}%` },
+    );
   }
+
+  return qb.getMany();
+}
+
+
   // ================= FIND ONE =================
   async findOne(id: string): Promise<RawMaterialReceipt> {
     const receipt = await this.receiptRepository.findOne({
       where: { id: id },
-      relations: ['rawMaterial', 'supplier', 'purchaseInvoice',  'purchaseInvoice.purchaseInvoiceDetails', // <-- nested relation
-],
+      relations: ['rawMaterial', 'supplier', 'purchaseInvoice', 'purchaseInvoice.purchaseInvoiceDetails', // <-- nested relation
+      ],
     });
     if (!receipt)
       throw new NotFoundException(`RawMaterialReceipt with id ${id} not found`);
@@ -161,6 +181,7 @@ export class RawMaterialReceiptService {
     const receipt = await this.findOne(id);
     console.log("receipt", receipt)
     await this.pdfService.generatePDF(receipt, res);
+
 
     return receipt;
   }

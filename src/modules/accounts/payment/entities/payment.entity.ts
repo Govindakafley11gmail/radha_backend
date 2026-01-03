@@ -73,4 +73,7 @@ export class Payment {
 
     @Column({ default: false })
     isDeleted: boolean;
+
+ @Column({ type: 'text', nullable: true })
+documentPath: string;
 }
