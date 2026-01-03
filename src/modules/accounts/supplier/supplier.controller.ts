@@ -16,7 +16,7 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { extname, join } from 'path';
-import { existsSync, createReadStream } from 'fs';
+import { existsSync } from 'fs';
 import type { Response } from 'express';
 
 import { SupplierService } from './supplier.service';
@@ -197,8 +197,8 @@ export class SupplierController {
       );
       res.setHeader('Content-Type', 'application/octet-stream');
 
-      const fileStream = createReadStream(filePath);
-      fileStream.pipe(res);
+       return res.download(filePath, supplier.mouFile);
+
     } catch (error) {
       return res.status(HttpStatus.BAD_REQUEST).json({
         message: 'Failed to download MOU',
