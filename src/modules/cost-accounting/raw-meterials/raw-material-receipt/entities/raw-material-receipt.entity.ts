@@ -1,8 +1,9 @@
 import { PurchaseInvoice } from 'src/modules/accounts/purchase-invoice/entities/purchase-invoice.entity';
 import { Supplier } from 'src/modules/accounts/supplier/entities/supplier.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
-import { RawMaterial } from '../../raw-material/entities/raw-material.entity';
+// import { RawMaterial } from '../../raw-material/entities/raw-material.entity';
 import { Payment } from 'src/modules/accounts/payment/entities/payment.entity';
+import { RawMaterialInventory } from 'src/modules/inventory-management/raw-material-inventory/entities/raw-material-inventory.entity';
 
 @Entity()
 export class RawMaterialReceipt {
@@ -10,9 +11,9 @@ export class RawMaterialReceipt {
     id: string;
 
     // Relations
-    @ManyToOne(() => RawMaterial)
-    @JoinColumn({ name: 'raw_material_id' })
-    rawMaterial: RawMaterial;
+    // @ManyToOne(() => RawMaterial)
+    // @JoinColumn({ name: 'raw_material_id' })
+    // rawMaterial: RawMaterial;
 
     @OneToMany(() => Payment, (payment) => payment.rawMaterialReceipt)
     payments: Payment[];
@@ -66,6 +67,10 @@ export class RawMaterialReceipt {
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;
 
-    @Column({nullable:true})
-    documentPath?:string;
+    @Column({ nullable: true })
+    documentPath?: string;
+
+    @ManyToOne(() => RawMaterialInventory, (inventory) => inventory.receipts, { onDelete: 'CASCADE' })
+    @JoinColumn({ name: 'inventory_id' })
+    inventory: RawMaterialInventory;
 }

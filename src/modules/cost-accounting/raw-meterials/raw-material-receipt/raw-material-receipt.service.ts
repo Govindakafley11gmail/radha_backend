@@ -10,7 +10,7 @@ import { CreateRawMaterialReceiptDto } from './dto/create-raw-material-receipt.d
 import { UpdateRawMaterialReceiptDto } from './dto/update-raw-material-receipt.dto';
 import { PurchaseInvoice } from 'src/modules/accounts/purchase-invoice/entities/purchase-invoice.entity';
 import { Supplier } from 'src/modules/accounts/supplier/entities/supplier.entity';
-import { RawMaterial } from '../raw-material/entities/raw-material.entity';
+// import { RawMaterial } from '../raw-material/entities/raw-material.entity';
 import { ReceiptPDFService } from './receiptPDFServices';
 import { Payment, PaymentMode, PaymentStatus } from 'src/modules/accounts/payment/entities/payment.entity';
 @Injectable()
@@ -34,10 +34,10 @@ export class RawMaterialReceiptService {
 
     try {
 
-      const rawMaterial = await queryRunner.manager.findOne(RawMaterial, {
-        where: { id: createDto.raw_material_id },
-      });
-      if (!rawMaterial) throw new NotFoundException('Raw Material not found');
+      // const rawMaterial = await queryRunner.manager.findOne(RawMaterial, {
+      //   where: { id: createDto.raw_material_id },
+      // });
+      // if (!rawMaterial) throw new NotFoundException('Raw Material not found');
 
       const supplier = await queryRunner.manager.findOne(Supplier, {
         where: { supplier_id: createDto.supplier_id },
@@ -55,7 +55,7 @@ export class RawMaterialReceiptService {
       const totalCost = materialCost + freightDuty + purchaseTax;
 
       const receipt = queryRunner.manager.create(RawMaterialReceipt, {
-        rawMaterial,
+        // rawMaterial,
         supplier,
         purchaseInvoice,
         quantityReceived: createDto.quantity_received,
@@ -100,7 +100,7 @@ export class RawMaterialReceiptService {
 async findAll(search?: string): Promise<RawMaterialReceipt[]> {
   const qb = this.receiptRepository
     .createQueryBuilder('receipt')
-    .leftJoinAndSelect('receipt.rawMaterial', 'rawMaterial')
+    // .leftJoinAndSelect('receipt.rawMaterial', 'rawMaterial')
     .leftJoinAndSelect('receipt.supplier', 'supplier')
     .leftJoinAndSelect('receipt.purchaseInvoice', 'invoice');
 
@@ -122,7 +122,7 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
   async findOne(id: string): Promise<RawMaterialReceipt> {
     const receipt = await this.receiptRepository.findOne({
       where: { id: id },
-      relations: ['rawMaterial', 'supplier', 'purchaseInvoice', 'purchaseInvoice.purchaseInvoiceDetails', // <-- nested relation
+      relations: [ 'supplier', 'purchaseInvoice', 'purchaseInvoice.purchaseInvoiceDetails', // <-- nested relation
       ],
     });
     if (!receipt)
@@ -184,13 +184,6 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
     receiptId: receipt.id,
     receiptNo: receipt.receipt_no,
     receivedDate: receipt.receivedDate,
-
-    material: {
-      id: receipt.rawMaterial.id,
-      name: receipt.rawMaterial.name,
-      unit: receipt.rawMaterial.unit,
-      standardCost: receipt.rawMaterial.standard_cost,
-    },
 
     supplier: {
       id: receipt.supplier.supplier_id,

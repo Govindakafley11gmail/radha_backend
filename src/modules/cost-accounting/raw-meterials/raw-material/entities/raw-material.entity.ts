@@ -1,6 +1,7 @@
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany, OneToOne } from 'typeorm';
 import { RawMaterialCost } from '../../raw-material-cost/entities/raw-material-cost.entity';
-import { RawMaterialReceipt } from '../../raw-material-receipt/entities/raw-material-receipt.entity';
+// import { RawMaterialReceipt } from '../../raw-material-receipt/entities/raw-material-receipt.entity';
+import { RawMaterialInventory } from 'src/modules/inventory-management/raw-material-inventory/entities/raw-material-inventory.entity';
 
 
 @Entity()
@@ -18,8 +19,8 @@ export class RawMaterial {
     standard_cost: number;
 
     // Relations
-    @OneToMany(() => RawMaterialReceipt, (receipt) => receipt.rawMaterial)
-    receipts: RawMaterialReceipt[];
+    // @OneToMany(() => RawMaterialReceipt, (receipt) => receipt.rawMaterial)
+    // receipts: RawMaterialReceipt[];
 
     @OneToMany(() => RawMaterialCost, (cost) => cost.rawMaterial)
     costs: RawMaterialCost[];
@@ -38,6 +39,7 @@ export class RawMaterial {
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;
-
+  @OneToOne(() => RawMaterialInventory, (inventory) => inventory.rawMaterial)
+  inventory: RawMaterialInventory;
 
 }

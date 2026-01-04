@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 
 import {
@@ -15,7 +16,7 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
-import { extname, join } from 'path';
+import { extname, join, basename } from 'path';
 import { existsSync } from 'fs';
 import type { Response } from 'express';
 
@@ -23,6 +24,7 @@ import { SupplierService } from './supplier.service';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
 import { ResponseService } from 'src/common/response/response';
+import * as mime from 'mime-types';
 
 const responseService = new ResponseService();
 
@@ -168,42 +170,35 @@ export class SupplierController {
   }
 
   // ================= DOWNLOAD MOU =================
-  @Get('download-mou/:id')
-  async downloadMou(
-    @Param('id') id: string,
-    @Res({ passthrough: false }) res: Response,
-  ) {
-    try {
-      const supplier = await this.supplierService.findOne(id);
+@Get('download-mou/:id')
+async downloadMou(
+  @Param('id') id: string,
+  @Res() res: Response,
+) {
+  const supplier = await this.supplierService.findOne(id);
 
-      if (!supplier?.mouFile) {
-        return res.status(HttpStatus.NOT_FOUND).json({
-          message: 'No MOU file uploaded for this supplier',
-        });
-      }
-    console.log(supplier?.mouFile)
-      // ✅ mouFile must be ONLY filename
-      const filePath = join(process.cwd(), supplier.mouFile);
-      console.log("filePath",filePath)
-      if (!existsSync(filePath)) {
-        return res.status(HttpStatus.NOT_FOUND).json({
-          message: 'File not found on server',
-        });
-      }
-
-      res.setHeader(
-        'Content-Disposition',
-        `attachment; filename="${supplier.mouFile}"`,
-      );
-      res.setHeader('Content-Type', 'application/octet-stream');
-
-       return res.download(filePath, supplier.mouFile);
-
-    } catch (error) {
-      return res.status(HttpStatus.BAD_REQUEST).json({
-        message: 'Failed to download MOU',
-        error: error instanceof Error ? error.message : String(error),
-      });
-    }
+  if (!supplier?.mouFile) {
+    return res.status(404).json({ message: 'No MOU file uploaded for this supplier' });
   }
+
+  const filePath = join(process.cwd(), supplier.mouFile);
+
+  if (!existsSync(filePath)) {
+    return res.status(404).json({ message: 'File not found on server' });
+  }
+
+  // ✅ Only filename, no path
+  const fileName = basename(supplier.mouFile);
+
+  // ✅ Dynamically detect MIME type
+  const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+
+  // ✅ Set proper headers
+  res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+  res.setHeader('Content-Type', mimeType);
+  res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
+  // ✅ Stream file to browser
+  return res.sendFile(filePath);
+}
 }

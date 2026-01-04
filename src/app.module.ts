@@ -19,6 +19,7 @@ import { AccountReceivableModule } from './modules/account_receivable/account_re
 import { TaxationComplianceModule } from './modules/taxation-compliance/taxation-compliance.module';
 import { SalesRevenueModule } from './modules/sales-revenue/sales-revenue.module';
 import { CostAccountingModule } from './modules/cost-accounting/cost-accounting.module';
+import { InventoryManagementModule } from './modules/inventory-management/inventory-management.module';
 dotenv.config();
 
 @Module({
@@ -48,7 +49,8 @@ dotenv.config();
     AccountReceivableModule,
     TaxationComplianceModule,
     SalesRevenueModule,
-    CostAccountingModule
+    CostAccountingModule,
+    InventoryManagementModule
   ],
   controllers: [AppController],
   providers: [
