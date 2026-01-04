@@ -14,6 +14,10 @@ import { AccountTransactionDetail } from 'src/modules/public/general_transaction
 import { Payment } from '../../payment/entities/payment.entity';
 import { PurchaseInvoiceDetail } from '../../purchaseinvoicedetails/entities/purchaseinvoicedetail.entity';
 // import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/taxinvoice.entity';
+export enum MaterialType {
+  NEW = 'NEW',
+  SCRAP = 'SCRAP',
+}
 
 
 @Entity('purchase_invoices')
@@ -23,6 +27,12 @@ export class PurchaseInvoice {
 
   @Column({ unique: true })
   invoiceNo: string;
+
+@Column({
+  type: 'enum',
+  enum: MaterialType,
+})
+materialTypes: MaterialType;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   freightCost: number;

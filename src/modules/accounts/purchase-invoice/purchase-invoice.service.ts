@@ -52,7 +52,6 @@ export class PurchaseInvoiceService {
       }
 
       const finalCost = materialCost + totalTax + otherCharges;
-
       // 3️⃣ Create purchase invoice
       const invoice = queryRunner.manager.create(PurchaseInvoice, {
         supplier,
@@ -60,6 +59,9 @@ export class PurchaseInvoiceService {
         invoiceDate: createDto.invoiceDate,
         dueDate: createDto.invoiceDate,
         finalCost,
+        materialTypes: createDto.materialTypes,
+        freightCost: createDto.freightCost,
+        importDuty:createDto.importDuty,
         taxAmount: totalTax,
         status: 'under_process',
         isDeleted: false,
@@ -75,6 +77,7 @@ export class PurchaseInvoiceService {
             productType: d.productType,
             productCode: d.productCode,
             size: d.size,
+            freightCost: d.freightCost,
             price: d.price,
             quantity: d.quantity,
             total: d.total ?? d.price * d.quantity,

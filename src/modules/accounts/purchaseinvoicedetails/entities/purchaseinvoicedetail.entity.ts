@@ -40,6 +40,8 @@ export class PurchaseInvoiceDetail {
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
   total?: number;
 
+
+  @Column({nullable:true})
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
   taxAmount?: number;
 

@@ -17,7 +17,7 @@ export class CreatePurchaseInvoiceDetailDto {
 
   @IsString()
   productCode: string;
-  
+
   @IsOptional()
   @IsString()
   size?: string;
@@ -39,6 +39,12 @@ export class CreatePurchaseInvoiceDetailDto {
   @IsOptional()
   @IsNumber()
   taxAmount?: number;
+
+
+  @Type(() => Number)
+  @IsOptional()
+  @IsNumber()
+  freightCost?: number;
 }
 
 export class CreatePurchaseInvoiceDto {
@@ -56,6 +62,9 @@ export class CreatePurchaseInvoiceDto {
   @IsOptional()
   @IsNumber()
   freightCost?: number;
+
+  @IsString()
+  materialTypes
 
   @Type(() => Number)
   @IsOptional()
@@ -83,6 +92,7 @@ export class CreatePurchaseInvoiceDto {
   @IsString()
   @IsOptional()
   status?: string;
+
 
   @IsOptional()
   @IsArray()
