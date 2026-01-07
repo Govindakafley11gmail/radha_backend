@@ -37,8 +37,8 @@ export class Payment {
     @Column({ type: 'date' })
     paymentDate: string;
 
-    @Column({ type: 'enum', enum: PaymentMode })
-    paymentMode: PaymentMode;
+    @Column()
+    paymentMode: string;;
 
     @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
     status: PaymentStatus;
@@ -54,6 +54,9 @@ export class Payment {
 
     @Column({ nullable: true })
     description: string;
+
+    @Column({nullable:true})
+    accountNo: string;
 
     @OneToMany(() => AccountTransactionDetail, detail => detail.payment)
     details: AccountTransactionDetail[];

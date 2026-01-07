@@ -25,10 +25,10 @@ export class AccountTransaction {
     @Column({ type: 'timestamp' })
     transactionDate: Date;
 
-    @Column({ type: 'varchar', length: 50 })
-    createdBy: string;
+    @Column({  nullable: true })
+    createdBy: number;
 
-    @Column({ type: 'varchar', length: 50, nullable: true })
+    @Column({ type: 'varchar',  nullable: true })
     updatedBy?: string;
 
     @Column({ default: false })

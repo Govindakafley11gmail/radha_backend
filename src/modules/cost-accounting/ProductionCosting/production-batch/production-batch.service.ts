@@ -1,7 +1,7 @@
 import {
   Injectable,
   NotFoundException,
-  ConflictException,
+  // ConflictException,
   BadRequestException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,23 +23,20 @@ export class ProductionBatchService {
 
     @InjectRepository(RawMaterial)
     private readonly materialRepository: Repository<RawMaterial>,
-  ) {}
+  ) { }
 
   /**
    * Create a new production batch with raw material costs
    */
   async create(dto: CreateProductionBatchDto, userId: string): Promise<ProductionBatch> {
     // Check for duplicate batch number
-    const existing = await this.batchRepository.findOne({
-      where: { batchNumber: dto.batchNumber },
-    });
-    if (existing) {
-      throw new ConflictException(`Batch number ${dto.batchNumber} already exists`);
-    }
 
+    const totalBatches = await this.batchRepository.count();
+    const nextNumber = totalBatches + 1; // next sequential number
+    const batchNumber = `BATCH${nextNumber.toString().padStart(4, '0')}`;
     // Create the batch entity
     const batch = this.batchRepository.create({
-      batchNumber: dto.batchNumber,
+      batchNumber: batchNumber,
       productionDate: dto.productionDate,
       productType: dto.productType,
       quantityProduced: dto.quantityProduced,
@@ -111,15 +108,15 @@ export class ProductionBatchService {
     const batch = await this.findOne(id);
 
     // Check batch number uniqueness if changed
-    if (dto.batchNumber && dto.batchNumber !== batch.batchNumber) {
-      const existing = await this.batchRepository.findOne({
-        where: { batchNumber: dto.batchNumber },
-      });
-      if (existing) {
-        throw new ConflictException(`Batch number ${dto.batchNumber} is already in use`);
-      }
-      batch.batchNumber = dto.batchNumber;
-    }
+    // if (dto.batchNumber && dto.batchNumber !== batch.batchNumber) {
+    //   const existing = await this.batchRepository.findOne({
+    //     where: { batchNumber: dto.batchNumber },
+    //   });
+    //   if (existing) {
+    //     throw new ConflictException(`Batch number ${dto.batchNumber} is already in use`);
+    //   }
+    //   batch.batchNumber = dto.batchNumber;
+    // }
 
     if (dto.productionDate !== undefined) batch.productionDate = dto.productionDate;
     if (dto.productType !== undefined) batch.productType = dto.productType;
@@ -130,7 +127,7 @@ export class ProductionBatchService {
       batch.quantityProduced = dto.quantityProduced;
     }
 
-    batch.UpdatedBy = userId;
+    batch.updatedBy = userId;
 
     // Optional: Update raw material costs if included in DTO
     if (dto.rawMaterialCosts && dto.rawMaterialCosts.length > 0) {

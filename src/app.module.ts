@@ -20,6 +20,7 @@ import { TaxationComplianceModule } from './modules/taxation-compliance/taxation
 import { SalesRevenueModule } from './modules/sales-revenue/sales-revenue.module';
 import { CostAccountingModule } from './modules/cost-accounting/cost-accounting.module';
 import { InventoryManagementModule } from './modules/inventory-management/inventory-management.module';
+import { ErpModule } from './modules/erp/erp.module';
 dotenv.config();
 
 @Module({
@@ -50,7 +51,9 @@ dotenv.config();
     TaxationComplianceModule,
     SalesRevenueModule,
     CostAccountingModule,
-    InventoryManagementModule
+    InventoryManagementModule,
+    ErpModule
+    
   ],
   controllers: [AppController],
   providers: [

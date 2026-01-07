@@ -12,7 +12,8 @@ import { PurchaseInvoice } from 'src/modules/accounts/purchase-invoice/entities/
 import { Supplier } from 'src/modules/accounts/supplier/entities/supplier.entity';
 // import { RawMaterial } from '../raw-material/entities/raw-material.entity';
 import { ReceiptPDFService } from './receiptPDFServices';
-import { Payment, PaymentMode, PaymentStatus } from 'src/modules/accounts/payment/entities/payment.entity';
+import { Payment, PaymentStatus } from 'src/modules/accounts/payment/entities/payment.entity';
+import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
 @Injectable()
 export class RawMaterialReceiptService {
   constructor(
@@ -49,25 +50,40 @@ export class RawMaterialReceiptService {
       });
       if (!purchaseInvoice) throw new NotFoundException('Purchase Invoice not found');
 
-      const materialCost = createDto.total_unit_cost;
-      const freightDuty = (createDto.freight_cost ?? 0) + (createDto.import_duty ?? 0);
-      const purchaseTax = createDto.gst_tax_amount ?? 0;
-      const totalCost = materialCost + freightDuty + purchaseTax;
+     
+      const lastDispatch = await queryRunner.manager
+        .createQueryBuilder(Dispatch, 'dispatch')
+        .orderBy('dispatch.versionNo', 'DESC')
+        .getOne();
 
+      const versionNo = lastDispatch ? lastDispatch.versionNo + 1 : 1;
+
+      // 2️⃣ Generate dispatchNo
+      const dispatchNo = `RADHA/${new Date().getFullYear()}/METERIALS/${String(versionNo).padStart(4, '0')}`;
+
+      // 3️⃣ Create dispatch entity
+      const dispatchEntity = queryRunner.manager.create(Dispatch, {
+        dispatchDate: purchaseInvoice.invoiceDate,
+        remarks: `Dispatch for Purchase Invoice Raw meterials ${purchaseInvoice.invoiceNo}`,
+        versionNo,    // ✅ required
+        dispatchNo,   // ✅ required
+      });
+
+      // 4️ Save in the same transaction
+      await queryRunner.manager.save(dispatchEntity);
       const receipt = queryRunner.manager.create(RawMaterialReceipt, {
         // rawMaterial,
         supplier,
         purchaseInvoice,
-        quantityReceived: createDto.quantity_received,
-        total_unit_cost: createDto.total_unit_cost,
-        freightCost: createDto.freight_cost ?? 0,
-        importDuty: createDto.import_duty ?? 0,
-        scrapQuantity: createDto.scrap_quantity ?? 0,
-        gst_tax_amount: createDto.gst_tax_amount,
-        purchaseTaxAmount: purchaseTax,
+        // quantityReceived: createDto.quantity_received,
+        // total_unit_cost: createDto.total_unit_cost,
+        // freightCost: createDto.freight_cost ?? 0,
+        // importDuty: createDto.import_duty ?? 0,
+        // scrapQuantity: createDto.scrap_quantity ?? 0,
+        // gst_tax_amount: createDto.gst_tax_amount,
+        // purchaseTaxAmount: purchaseTax,
         payment_remarks: createDto.payment_remarks,
-        totalCost,
-        receipt_no: `REC-${new Date().toDateString()}`,
+        receipt_no: dispatchNo,
         receivedDate: createDto.received_date ? new Date(createDto.received_date) : new Date(),
         documentPath: documentPath ?? undefined, // <-- make sure null is converted to undefined
       });
@@ -76,11 +92,12 @@ export class RawMaterialReceiptService {
       // Optionally create a payment entry
       const payment = queryRunner.manager.create(Payment, {
         invoice: purchaseInvoice,
-        amount: totalCost,
+        amount: createDto.total_cost,
         paymentDate: new Date().toISOString().split('T')[0],
         status: PaymentStatus.PENDING,
-        paymentMode: PaymentMode.CASH,
-        description: `Payment against Invoice ${purchaseInvoice.invoiceNo}`,
+        accountNo: createDto.accountNo,
+        paymentMode: createDto.paymentMode,
+        description: createDto.payment_remarks,
         documentPath: documentPath ?? undefined,
 
       });
@@ -97,32 +114,32 @@ export class RawMaterialReceiptService {
   }
 
   // ================= FIND ALL =================
-async findAll(search?: string): Promise<RawMaterialReceipt[]> {
-  const qb = this.receiptRepository
-    .createQueryBuilder('receipt')
-    // .leftJoinAndSelect('receipt.rawMaterial', 'rawMaterial')
-    .leftJoinAndSelect('receipt.supplier', 'supplier')
-    .leftJoinAndSelect('receipt.purchaseInvoice', 'invoice');
+  async findAll(search?: string): Promise<RawMaterialReceipt[]> {
+    const qb = this.receiptRepository
+      .createQueryBuilder('receipt')
+      // .leftJoinAndSelect('receipt.rawMaterial', 'rawMaterial')
+      .leftJoinAndSelect('receipt.supplier', 'supplier')
+      .leftJoinAndSelect('receipt.purchaseInvoice', 'invoice');
 
-  if (search) {
-    qb.andWhere(
-      `
+    if (search) {
+      qb.andWhere(
+        `
       invoice.invoiceNo ILIKE :search
       OR supplier.name ILIKE :search
       `,
-      { search: `%${search}%` },
-    );
-  }
+        { search: `%${search}%` },
+      );
+    }
 
-  return qb.getMany();
-}
+    return qb.getMany();
+  }
 
 
   // ================= FIND ONE =================
   async findOne(id: string): Promise<RawMaterialReceipt> {
     const receipt = await this.receiptRepository.findOne({
       where: { id: id },
-      relations: [ 'supplier', 'purchaseInvoice', 'purchaseInvoice.purchaseInvoiceDetails', // <-- nested relation
+      relations: ['supplier', 'purchaseInvoice', 'purchaseInvoice.purchaseInvoiceDetails', // <-- nested relation
       ],
     });
     if (!receipt)
@@ -138,12 +155,6 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
     const receipt = await this.findOne(id);
     Object.assign(receipt, updateDto);
 
-
-    const materialCost = receipt.total_unit_cost;
-    const freightDuty = (receipt.freightCost ?? 0) + (receipt.importDuty ?? 0);
-    const purchaseTax = receipt.gst_tax_amount ?? 0;
-
-    receipt.totalCost = materialCost + freightDuty + purchaseTax;
 
     return this.receiptRepository.save(receipt);
   }
@@ -179,39 +190,30 @@ async findAll(search?: string): Promise<RawMaterialReceipt[]> {
   }
   async generateReceipt(id: string, res: any): Promise<any> {
     const receipt = await this.findOne(id);
-  const rawMaterialArray = [
-  {
-    receiptId: receipt.id,
-    receiptNo: receipt.receipt_no,
-    receivedDate: receipt.receivedDate,
+    const rawMaterialArray = [
+      {
+        receiptId: receipt.id,
+        receiptNo: receipt.receipt_no,
 
-    supplier: {
-      id: receipt.supplier.supplier_id,
-      name: receipt.supplier.name,
-      phone: receipt.supplier.phone_no,
-      email: receipt.supplier.email,
-    },
+        supplier: {
+          id: receipt.supplier.supplier_id,
+          name: receipt.supplier.name,
+          phone: receipt.supplier.phone_no,
+          email: receipt.supplier.email,
+        },
 
-    invoice: {
-      id: receipt.purchaseInvoice.id,
-      invoiceNo: receipt.purchaseInvoice.invoiceNo,
-      invoiceDate: receipt.purchaseInvoice.invoiceDate,
-      finalCost: receipt.purchaseInvoice.finalCost,
-      taxAmount: receipt.purchaseInvoice.taxAmount,
-    },
+        invoice: {
+          id: receipt.purchaseInvoice.id,
+          invoiceNo: receipt.purchaseInvoice.invoiceNo,
+          invoiceDate: receipt.purchaseInvoice.invoiceDate,
+          finalCost: receipt.purchaseInvoice.finalCost,
+          taxAmount: receipt.purchaseInvoice.taxAmount,
+        },
 
-    quantityReceived: receipt.quantityReceived,
-    totalUnitCost: receipt.total_unit_cost,
-    freightCost: receipt.freightCost,
-    importDuty: receipt.importDuty,
-    scrapQuantity: receipt.scrapQuantity,
-    gstTaxAmount: receipt.gst_tax_amount,
-    totalCost: receipt.totalCost,
-
-    remarks: receipt.payment_remarks,
-    documentPath: receipt.documentPath,
-  },
-]
+        remarks: receipt.payment_remarks,
+        documentPath: receipt.documentPath,
+      },
+    ]
 
     console.log("receipt", rawMaterialArray)
 

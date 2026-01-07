@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { Controller, Get, Post, Body, Patch, Param, Delete, Req } from '@nestjs/common';
 import { BadDebtService } from './bad-debt.service';
 import { CreateBadDebtDto } from './dto/create-bad-debt.dto';
 import { UpdateBadDebtDto } from './dto/update-bad-debt.dto';
@@ -8,8 +9,9 @@ export class BadDebtController {
   constructor(private readonly badDebtService: BadDebtService) {}
 
   @Post()
-  create(@Body() createBadDebtDto: CreateBadDebtDto) {
-    return this.badDebtService.create(createBadDebtDto);
+  create(@Body() createBadDebtDto: CreateBadDebtDto,  @Req() req) {
+                const userId = req.user.id; // <-- user ID fro
+    return this.badDebtService.create(createBadDebtDto,userId);
   }
 
   @Get()

@@ -30,7 +30,7 @@ export class BadDebtService {
   ) {}
 
   // Create BadDebt + Accounting
-  async create(createBadDebtDto: CreateBadDebtDto): Promise<BadDebt> {
+  async create(createBadDebtDto: CreateBadDebtDto,userId:number): Promise<BadDebt> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -60,8 +60,7 @@ export class BadDebtService {
         voucher_no: `BDW-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}${Math.floor(1000 + Math.random() * 9000)}`,
         description: `Bad Debt Write-off for Invoice ID: ${invoice.id}`,
         status: 'POSTED',
-        createdBy: 'system',
-        updatedBy: 'system',
+        createdBy: userId,
       });
 
       const savedTransaction = await queryRunner.manager.save(accountTransaction);

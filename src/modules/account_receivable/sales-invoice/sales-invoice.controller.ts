@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { Controller, Get, Post, Body, Param, Delete, Req } from '@nestjs/common';
 import { SalesInvoiceService } from './sales-invoice.service';
 import { CreateSalesInvoiceDto } from './dto/create-sales-invoice.dto';
 
@@ -8,9 +9,10 @@ export class SalesInvoiceController {
 
   // ✅ Create and post invoice with details & accounting entries
   @Post()
-  async create(@Body() createSalesInvoiceDto: CreateSalesInvoiceDto) {
+  async create(@Body() createSalesInvoiceDto: CreateSalesInvoiceDto, @Req() req) {
+            const userId = req.user.id; // <-- user ID from JWT payload
 
-    return this.salesInvoiceService.createAndPostInvoice(createSalesInvoiceDto);
+    return this.salesInvoiceService.createAndPostInvoice(createSalesInvoiceDto, userId);
   }
 
 @Get()

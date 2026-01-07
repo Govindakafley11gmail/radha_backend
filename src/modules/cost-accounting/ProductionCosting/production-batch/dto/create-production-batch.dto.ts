@@ -12,8 +12,6 @@ class RawMaterialCostItem {
 }
 
 export class CreateProductionBatchDto {
-  @IsString()
-  batchNumber: string;
 
   @IsDate()
   @Type(() => Date)

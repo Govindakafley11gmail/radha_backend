@@ -13,6 +13,7 @@ import { AccountType } from 'src/modules/master/account_types/entities/account_t
 import { AccountTransaction } from 'src/modules/public/general_transaction/account_transaction/entities/account_transaction.entity';
 import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
 import { PurchaseInvoice } from '../purchase-invoice/entities/purchase-invoice.entity';
+import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
 
 @Injectable()
 export class PaymentService {
@@ -21,7 +22,7 @@ export class PaymentService {
     private readonly dataSource: DataSource,
   ) { }
 
-  async create(dto: CreatePaymentDto): Promise<Payment> {
+  async create(dto: CreatePaymentDto, userId:number): Promise<Payment> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
@@ -32,7 +33,7 @@ export class PaymentService {
         where: { id: dto.invoiceId, isDeleted: false },
       });
       if (!invoice) throw new NotFoundException('Invoice not found');
-      if (invoice.status !== 'Posted')
+      if (invoice.status == 'Completed')
         throw new InternalServerErrorException('Only POSTED invoices can be paid');
 
       // 2️⃣ Fetch Ledger Accounts
@@ -56,16 +57,40 @@ export class PaymentService {
       if (!accountsPayable || !cashOrBank || !gstInput)
         throw new InternalServerErrorException('Ledger accounts not properly configured');
 
-      // 3️⃣ Create Payment
-      const payment = queryRunner.manager.create(Payment, {
-        invoice,
-        amount: dto.amount,
-        paymentDate: dto.paymentDate,
-        paymentMode: dto.paymentMode,
-        referenceNumber: dto.referenceNumber,
-        description: dto.description,
+
+      const payment = await queryRunner.manager.findOne(Payment, {
+        where: { id: dto.id },
+        relations: ['invoice', 'accountType', 'details'],
       });
-      const savedPayment = await queryRunner.manager.save(payment);
+
+      if (!payment) {
+        throw new NotFoundException(`Payment with ID not found`);
+      }
+      payment.amount = dto.amount ?? payment.amount;
+      payment.paymentDate = dto.paymentDate ?? payment.paymentDate;
+      payment.paymentMode = dto.paymentMode ?? payment.paymentMode;
+      payment.referenceNumber = dto.referenceNumber ?? payment.referenceNumber;
+      payment.description = dto.description ?? payment.description;
+      payment.accountType = cashOrBank;
+
+    const updatedPayment=  await queryRunner.manager.save(payment);
+    
+      const lastDispatch = await queryRunner.manager
+        .createQueryBuilder(Dispatch, 'dispatch')
+        .orderBy('dispatch.versionNo', 'DESC')
+        .getOne();
+
+      const versionNo = lastDispatch ? lastDispatch.versionNo + 1 : 1;
+      const dispatchNo = `RADHA/${new Date().getFullYear()}/PV/${String(versionNo).padStart(4, '0')}`;
+
+      // 3️⃣ Create dispatch entity
+      const dispatchEntity = queryRunner.manager.create(Dispatch, {
+        dispatchDate: dto.paymentDate,
+        remarks: dto.description,
+        versionNo,    // ✅ required
+        dispatchNo,   // ✅ required
+      });
+      await queryRunner.manager.save(dispatchEntity);
 
       // 4️⃣ Create AccountTransaction (Voucher)
       const transaction = queryRunner.manager.create(AccountTransaction, {
@@ -74,8 +99,8 @@ export class PaymentService {
         referenceNo: invoice.id,
         description: `Payment for Purchase Invoice ${invoice.invoiceNo}`,
         transactionDate: dto.paymentDate,
-        createdBy: 'system',
-        accountId: savedPayment.id,
+        createdBy: userId,
+        accountId: dto.id,
       });
       const savedTransaction = await queryRunner.manager.save(transaction);
 
@@ -93,8 +118,7 @@ export class PaymentService {
           debit: dto.amount,
           credit: 0,
           description: 'Supplier payment settlement',
-          accountId: savedPayment.id,
-
+          accountId: dto.id,
         }),
 
         // Credit Cash/Bank (Base Amount)
@@ -105,8 +129,7 @@ export class PaymentService {
           debit: 0,
           credit: baseAmount,
           description: `${cashOrBank.name} payment`,
-          accountId: savedPayment.id,
-
+          accountId: dto.id,
         }),
 
         // Credit GST Input (Receivable)
@@ -117,7 +140,7 @@ export class PaymentService {
           debit: 0,
           credit: gstAmount,
           description: 'GST Input (Receivable)',
-          accountId: savedPayment.id,
+          accountId: dto.id,
 
         }),
       ];
@@ -131,7 +154,7 @@ export class PaymentService {
       }
 
       await queryRunner.commitTransaction();
-      return savedPayment;
+      return updatedPayment;
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;

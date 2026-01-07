@@ -39,7 +39,7 @@ export class SalesInvoiceService {
   // ===============================
   // CREATE & POST SALES INVOICE
   // ===============================
-  async createAndPostInvoice(dto: CreateSalesInvoiceDto): Promise<SalesInvoice> {
+  async createAndPostInvoice(dto: CreateSalesInvoiceDto,userId: number): Promise<SalesInvoice> {
     const qr = this.dataSource.createQueryRunner();
     await qr.connect();
     await qr.startTransaction();
@@ -126,7 +126,7 @@ export class SalesInvoiceService {
         voucher_amount: savedInvoice.totalAmount,
         description: `Sales Invoice ${savedInvoice.invoiceNumber}`,
         transactionDate: savedInvoice.invoiceDate,
-        createdBy: 'system',
+        createdBy: userId,
       });
 
       const savedTxn = await qr.manager.save(transaction);

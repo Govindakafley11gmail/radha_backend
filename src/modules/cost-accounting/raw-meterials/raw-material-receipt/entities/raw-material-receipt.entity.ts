@@ -26,33 +26,11 @@ export class RawMaterialReceipt {
     @JoinColumn({ name: 'purchase_invoice_id' })
     purchaseInvoice: PurchaseInvoice;
 
-    // Fields
-    @Column('decimal')
-    quantityReceived: number;
-
-    @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    receivedDate: Date;
-
-    @Column('decimal')
-    total_unit_cost: number;
-
-    @Column('decimal', { nullable: true })
-    freightCost: number;
-
-    @Column('decimal', { nullable: true })
-    importDuty: number;
-
-    @Column('decimal', { nullable: true })
-    scrapQuantity: number;
-
-    @Column('decimal')
-    totalCost: number; // Can be computed as (quantityReceived * unitCost + freightCost + importDuty - scrapValue)
-
     @Column({ type: 'text', nullable: true })
     payment_remarks?: string;
+    @Column({ type: 'timestamp',nullable: true})
 
-    @Column({ type: 'decimal', nullable: true })
-    gst_tax_amount: number;
+    received_date:Date;
 
     @Column({ type: 'boolean', default: false })
     is_deleted: boolean;

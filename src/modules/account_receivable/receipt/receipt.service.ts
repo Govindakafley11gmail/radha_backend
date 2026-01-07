@@ -38,7 +38,7 @@ export class ReceiptService {
   ) { }
 
   /* ================= CREATE ================= */
-  async create(createReceiptDto: CreateReceiptDto): Promise<Receipt> {
+  async create(createReceiptDto: CreateReceiptDto,userId:number): Promise<Receipt> {
     const queryRunner = this.receiptRepo.manager.connection.createQueryRunner();
 
     await queryRunner.connect();
@@ -94,8 +94,7 @@ export class ReceiptService {
         voucher_no: receiptNumber,
         description: `Receipt for Invoice ID: ${savedReceipt.sales_invoice_id}`,
         status: 'POSTED',
-        createdBy: 'system',
-        updatedBy: 'system',
+        createdBy: userId,
       });
       const savedTransaction = await queryRunner.manager.save(transaction);
 

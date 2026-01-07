@@ -4,6 +4,7 @@ import { LaborCost } from '../../labor-cost/entities/labor-cost.entity';
 import { MachineUsageCost } from '../../machine-cost/entities/machine-cost.entity';
 import { RawMaterialCost } from 'src/modules/cost-accounting/raw-meterials/raw-material-cost/entities/raw-material-cost.entity';
 import { ProductUnitCost } from '../../product-unit-cost/entities/product-unit-cost.entity';
+import { WIPInventory } from 'src/modules/inventory-management/wipinventory/entities/wipinventory.entity';
 
 @Entity({ name: 'production_batches' })
 export class ProductionBatch {
@@ -22,26 +23,28 @@ export class ProductionBatch {
   @Column({ name: 'quantity_produced', type: 'decimal', precision: 12, scale: 2 })
   quantityProduced: number;
 
-  @Column({nullable:true})
-  createdBy:string;
-  @Column({nullable:true})
+  @Column({ nullable: true })
+  createdBy: string;
 
-  UpdatedBy:string;
-  // Machine usage costs
+  @Column({ nullable: true })
+  updatedBy: string; // ✅ fixed missing decorator
+
+  // --- Relations ---
+  @OneToMany(() => WIPInventory, (wip) => wip.batch)
+  wipInventories: WIPInventory[];
+
   @OneToMany(() => MachineUsageCost, (usage) => usage.batch)
   machineUsageCosts: MachineUsageCost[];
 
-  // Labor costs
   @OneToMany(() => LaborCost, (cost) => cost.batch)
   laborCosts: LaborCost[];
 
-  // Other production costs (overheads)
   @OneToMany(() => OtherProductionCost, (cost) => cost.batch)
   otherProductionCosts: OtherProductionCost[];
 
-    @OneToMany(() => RawMaterialCost, (cost) => cost.batch, { cascade: true })
+  @OneToMany(() => RawMaterialCost, (cost) => cost.batch, { cascade: true })
   rawMaterialCosts: RawMaterialCost[];
 
   @OneToMany(() => ProductUnitCost, (unitCost) => unitCost.batch)
-productUnitCosts: ProductUnitCost[];
+  productUnitCosts: ProductUnitCost[];
 }

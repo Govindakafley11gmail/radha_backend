@@ -1,4 +1,5 @@
-import { Controller, Get, Post, Body, Param, Delete, HttpStatus } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { Controller, Get, Post, Body, Param, Delete, HttpStatus, Req } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ResponseService } from 'src/common/response/response';
@@ -10,9 +11,11 @@ export class PaymentController {
   constructor(private readonly paymentService: PaymentService) {}
 
   @Post()
-  async create(@Body() createPaymentDto: CreatePaymentDto) {
+  async create(@Body() createPaymentDto: CreatePaymentDto, @Req() req) {
     try {
-      const payment = await this.paymentService.create(createPaymentDto);
+            const userId = req.user.id; // <-- user ID from JWT payload
+
+      const payment = await this.paymentService.create(createPaymentDto, userId);
       return responseService.success(payment, 'Payment created successfully', HttpStatus.CREATED);
     } catch (error) {
       return responseService.error(

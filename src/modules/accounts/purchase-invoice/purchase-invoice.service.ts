@@ -14,6 +14,8 @@ import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/
 import { PurchaseInvoiceDetail } from '../purchaseinvoicedetails/entities/purchaseinvoicedetail.entity';
 import { Supplier } from '../supplier/entities/supplier.entity';
 import { AccountType } from 'src/modules/master/account_types/entities/account_type.entity';
+import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
+import { DispatchService } from 'src/modules/public/dispatch/dispatch.service';
 
 @Injectable()
 export class PurchaseInvoiceService {
@@ -23,11 +25,14 @@ export class PurchaseInvoiceService {
     @InjectRepository(AccountType)
     private readonly accountTypeRepository: Repository<AccountType>,
     private readonly dataSource: DataSource,
+  private readonly dispatchService: DispatchService, // ✅ inject service, not repository
+
   ) { }
+
 
   async createAndPostInvoice(
     createDto: CreatePurchaseInvoiceDto,
-    userId: string
+    userId: number
   ): Promise<PurchaseInvoice> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -59,16 +64,39 @@ export class PurchaseInvoiceService {
         invoiceDate: createDto.invoiceDate,
         dueDate: createDto.invoiceDate,
         finalCost,
+        materialCost,
+        // otherCharges,
         materialTypes: createDto.materialTypes,
         freightCost: createDto.freightCost,
-        importDuty:createDto.importDuty,
+        importDuty: createDto.importDuty,
         taxAmount: totalTax,
         status: 'under_process',
         isDeleted: false,
       });
       const savedInvoice = await queryRunner.manager.save(invoice);
 
-      // 4️⃣ Create invoice details
+    // 2️⃣ Generate voucherNo
+     const lastDispatch = await queryRunner.manager
+    .createQueryBuilder(Dispatch, 'dispatch')
+    .orderBy('dispatch.versionNo', 'DESC')
+    .getOne();
+
+const versionNo = lastDispatch ? lastDispatch.versionNo + 1 : 1;
+
+// 2️⃣ Generate dispatchNo
+const dispatchNo = `RADHA/${new Date().getFullYear()}/PI/${String(versionNo).padStart(4, '0')}`;
+
+// 3️⃣ Create dispatch entity
+const dispatchEntity = queryRunner.manager.create(Dispatch, {
+    dispatchDate: savedInvoice.invoiceDate,
+    remarks: `Dispatch for Purchase Invoice ${savedInvoice.invoiceNo}`,
+    versionNo,    // ✅ required
+    dispatchNo,   // ✅ required
+});
+
+// 4️ Save in the same transaction
+await queryRunner.manager.save(dispatchEntity);
+      // 4️ Create invoice details
       if (createDto.details?.length) {
         const detailEntities = createDto.details.map(d =>
           queryRunner.manager.create(PurchaseInvoiceDetail, {
@@ -107,12 +135,12 @@ export class PurchaseInvoiceService {
         accountId: savedInvoice.id,
         referenceType: 'PURCHASE_INVOICE',
         referenceId: savedInvoice.id,
-        voucher_no: `PI-${Date.now()}`,
+        voucher_no: `Radha/${new Date().getFullYear()}/PI/`,
         voucher_amount: savedInvoice.finalCost,
         description: `Purchase Invoice ${savedInvoice.invoiceNo}`,
         transactionDate: savedInvoice.invoiceDate,
         createdBy: userId,
-        updatedBy: userId,
+        // updatedBy: userId,
       });
       const savedTransaction = await queryRunner.manager.save(transaction);
 

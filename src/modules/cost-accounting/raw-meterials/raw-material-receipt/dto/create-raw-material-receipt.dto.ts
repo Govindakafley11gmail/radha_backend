@@ -2,9 +2,7 @@ import { IsNotEmpty, IsNumber, IsOptional, IsDateString, IsString } from 'class-
 import { Type } from 'class-transformer'; // <-- import Type
 
 export class CreateRawMaterialReceiptDto {
-  @IsNotEmpty()
-  @IsString()
-  raw_material_id: string;
+ 
 
   @IsNotEmpty()
   @IsString()
@@ -13,41 +11,17 @@ export class CreateRawMaterialReceiptDto {
   @IsOptional()
   @IsNumber()
   @Type(() => Number) // <-- convert to number
-  gst_tax_amount?: number;
+  total_cost?: number;
 
   @IsNotEmpty()
   @IsString()
   purchase_invoice_id: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Type(() => Number)
-  quantity_received: number;
+  @IsString()
+  paymentMode?: string;
 
-  @IsNotEmpty()
-  @IsNumber()
-  @Type(() => Number)
-  total_unit_cost: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  freight_cost?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  import_duty?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Type(() => Number)
-  scrap_quantity?: number;
-
-  @IsNotEmpty()
-  @IsNumber()
-  @Type(() => Number)
-  total_cost: number;
+   @IsString()
+  accountNo?: string;
 
   @IsOptional()
   @IsDateString()
