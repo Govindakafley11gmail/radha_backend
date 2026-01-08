@@ -130,7 +130,7 @@ async findAll(@Query('search') search?: string) {
     }
   }
 
-  @Get(':id/generate')
+  @Get('generate/:id')
   async generateReceipt(@Param('id') id: string, @Res() res: Response) {
     try {
       

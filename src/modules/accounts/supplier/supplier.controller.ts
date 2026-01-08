@@ -170,7 +170,7 @@ export class SupplierController {
   }
 
   // ================= DOWNLOAD MOU =================
-@Get('download-mou/:id')
+@Get('download/:id')
 async downloadMou(
   @Param('id') id: string,
   @Res() res: Response,
