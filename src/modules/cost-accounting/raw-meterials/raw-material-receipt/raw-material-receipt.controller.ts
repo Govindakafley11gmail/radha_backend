@@ -21,7 +21,6 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import { RawMaterialReceiptService } from './raw-material-receipt.service';
 import { CreateRawMaterialReceiptDto } from './dto/create-raw-material-receipt.dto';
-import { UpdateRawMaterialReceiptDto } from './dto/update-raw-material-receipt.dto';
 import { ResponseService } from 'src/common/response/response';
 import type { Response } from 'express';
 import { extname } from 'path';
@@ -142,14 +141,13 @@ const roles = req.user.role as unknown as UserRole[]; // Type assertion
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() updateDto: UpdateRawMaterialReceiptDto,
         @Req() req: AuthRequest,
 
   ) {
     try {
       const roles = req.user.role as unknown as UserRole[]; // Type assertion
 
-      const updatedReceipt = await this.rawMaterialReceiptService.update(id, updateDto,roles);
+      const updatedReceipt = await this.rawMaterialReceiptService.update(id,roles);
       return responseService.success(updatedReceipt, 'Raw material receipt updated successfully', HttpStatus.OK);
     } catch (error) {
       return responseService.error(
@@ -205,4 +203,28 @@ const roles = req.user.role as unknown as UserRole[]; // Type assertion
       });
     }
   }
+@Patch(':id/reject')
+async rejectPurchaseInvoice(
+  @Param('id') id: string,
+  @Req() req: any,
+  @Res() res: Response,
+) {
+  try {
+    const result = await this.rawMaterialReceiptService.remove(
+      id,
+    );
+
+    return res.status(HttpStatus.OK).json({
+      success: true,
+      message: 'Purchase invoice rejected successfully',
+      data: result,
+    });
+  } catch (error) {
+    return res.status(HttpStatus.BAD_REQUEST).json({
+      success: false,
+      message: error.message,
+    });
+  }
+}
+
 }

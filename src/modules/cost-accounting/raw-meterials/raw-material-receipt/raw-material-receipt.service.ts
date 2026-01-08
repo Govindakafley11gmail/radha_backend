@@ -7,7 +7,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
 import { RawMaterialReceipt } from './entities/raw-material-receipt.entity';
 import { CreateRawMaterialReceiptDto } from './dto/create-raw-material-receipt.dto';
-import { UpdateRawMaterialReceiptDto } from './dto/update-raw-material-receipt.dto';
 import { PurchaseInvoice } from 'src/modules/accounts/purchase-invoice/entities/purchase-invoice.entity';
 import { Supplier } from 'src/modules/accounts/supplier/entities/supplier.entity';
 // import { RawMaterial } from '../raw-material/entities/raw-material.entity';
@@ -191,7 +190,6 @@ export class RawMaterialReceiptService {
   // ================= UPDATE =================
   async update(
     id: string,
-    updateDto: UpdateRawMaterialReceiptDto,
     roles: any[],
   ): Promise<RawMaterialReceipt> {
     const queryRunner = this.dataSource.createQueryRunner();
