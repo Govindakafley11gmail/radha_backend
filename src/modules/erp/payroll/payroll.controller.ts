@@ -1,12 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Controller, Get, Post, Body, Param, Patch, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, HttpStatus, Req } from '@nestjs/common';
 import { PayrollService } from './payroll.service';
 import { CreatePayrollDto } from './dto/create-payroll.dto';
 import { ResponseService } from 'src/common/response/response';
+import express from 'express';
 
 const responseService = new ResponseService();
-
+interface AuthRequest extends express.Request {
+  user: {
+    id: number;
+    role: string;
+  };
+}
 @Controller('payrolls')
 export class PayrollController {
   constructor(private readonly payrollService: PayrollService) {}
@@ -52,20 +58,20 @@ export class PayrollController {
     }
   }
 
-  @Patch(':id/approve/:approverId')
-  async approve(@Param('id') id: string, @Param('approverId') approverId: number) {
+  @Patch(':id/approve')
+  async approve(@Param('id') id: string, @Req() req: AuthRequest) {
     try {
-      const payroll = await this.payrollService.approve(id, approverId);
+      const payroll = await this.payrollService.approve(id, req.user.id);
       return responseService.success(payroll, 'Payroll approved successfully', HttpStatus.OK);
     } catch (err) {
       return responseService.error(err.message, 'Failed to approve payroll', HttpStatus.BAD_REQUEST);
     }
   }
 
-  @Patch(':id/reject/:approverId')
-  async reject(@Param('id') id: string, @Param('approverId') approverId: number, @Body('remarks') remarks: string) {
+  @Patch(':id/reject')
+  async reject(@Param('id') id: string, @Req() req: AuthRequest, @Body('remarks') remarks: string) {
     try {
-      const payroll = await this.payrollService.reject(id, approverId, remarks);
+      const payroll = await this.payrollService.reject(id, req.user.id, remarks);
       return responseService.success(payroll, 'Payroll rejected successfully', HttpStatus.OK);
     } catch (err) {
       return responseService.error(err.message, 'Failed to reject payroll', HttpStatus.BAD_REQUEST);

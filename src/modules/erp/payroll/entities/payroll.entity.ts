@@ -1,5 +1,6 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn} from 'typeorm';
 import { PayrollDetail } from '../../payroll-details/entities/payroll-detail.entity';
+import { SalarySlip } from '../../salaryslip/entities/salaryslip.entity';
 
 export enum PayrollStatus {
   DRAFT = 'DRAFT',
@@ -19,6 +20,11 @@ export class Payroll {
   @Column({ type: 'enum', enum: PayrollStatus, default: PayrollStatus.DRAFT })
   status: PayrollStatus;
 
+
+   @OneToMany(() => SalarySlip, slip => slip.payroll, {
+    cascade: true,
+  })
+  salarySlips: SalarySlip[]
   @Column({ nullable: true })
   approvedBy: number;
 

@@ -31,13 +31,14 @@ export class PayrollDetail {
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
     allowances: number;
 
+
     @Column('decimal', { precision: 10, scale: 2, default: 0 })
     deductions: number;
 
     @Column('decimal', { precision: 10, scale: 2 })
     netSalary: number;
 
-      @ManyToOne(() => User, { eager: true })
-        @JoinColumn({ name: 'employee_id' })
-        employee: User;
+    @ManyToOne(() => User, { eager: true })
+    @JoinColumn({ name: 'employeeId' })
+    employee: User;
 }
