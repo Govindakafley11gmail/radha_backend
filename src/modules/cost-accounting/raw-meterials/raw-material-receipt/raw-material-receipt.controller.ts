@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Controller,
   Get,
@@ -20,6 +23,7 @@ import { UpdateRawMaterialReceiptDto } from './dto/update-raw-material-receipt.d
 import { ResponseService } from 'src/common/response/response';
 import type { Response } from 'express';
 import { extname } from 'path';
+import * as mime from 'mime-types';
 
 const responseService = new ResponseService();
 
@@ -133,6 +137,25 @@ async findAll(@Query('search') search?: string) {
       await this.rawMaterialReceiptService.generateReceipt(id, res);
     } catch (error) {
       res.status(HttpStatus.BAD_REQUEST).json({
+        status: 'error',
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+   // ================= DOWNLOAD MOU =================
+  @Get(':id/download')
+  async downloadDocument(@Param('id') id: string, @Res() res: Response) {
+    try {
+      const { filePath, fileName } = await this.rawMaterialReceiptService.downloadDocument(id);
+
+      const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+      res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+      res.setHeader('Content-Type', mimeType);
+      res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
+
+      return res.sendFile(filePath);
+    } catch (error) {
+      return res.status(HttpStatus.NOT_FOUND).json({
         status: 'error',
         message: error instanceof Error ? error.message : String(error),
       });

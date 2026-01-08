@@ -73,4 +73,5 @@ export class SupplierService {
     }
 
     return { filePath, fileName: supplier.supplier_id };
-  }}
+  }
+}

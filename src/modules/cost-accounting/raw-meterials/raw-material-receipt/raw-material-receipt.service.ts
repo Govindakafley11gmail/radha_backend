@@ -14,6 +14,8 @@ import { Supplier } from 'src/modules/accounts/supplier/entities/supplier.entity
 import { ReceiptPDFService } from './receiptPDFServices';
 import { Payment, PaymentStatus } from 'src/modules/accounts/payment/entities/payment.entity';
 import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
+import { existsSync } from 'fs';
+import { join } from 'path';
 @Injectable()
 export class RawMaterialReceiptService {
   constructor(
@@ -88,7 +90,7 @@ export class RawMaterialReceiptService {
         documentPath: documentPath ?? undefined, // <-- make sure null is converted to undefined
       });
       const savedReceipt = await queryRunner.manager.save(receipt);
-
+     console.log(createDto.supplier_id)
       // Optionally create a payment entry
       const payment = queryRunner.manager.create(Payment, {
         invoice: purchaseInvoice,
@@ -99,6 +101,7 @@ export class RawMaterialReceiptService {
         paymentMode: createDto.paymentMode,
         description: createDto.payment_remarks,
         documentPath: documentPath ?? undefined,
+        supplierId: createDto.supplier_id
 
       });
       await queryRunner.manager.save(payment);
@@ -221,5 +224,20 @@ export class RawMaterialReceiptService {
 
 
     return receipt;
+  }
+   async downloadDocument(id: string): Promise<{ filePath: string; fileName: string| undefined }> {
+    const receipt = await this.receiptRepository.findOne({ where: { id } });
+    if (!receipt) throw new NotFoundException(`Receipt ${id} not found`);
+
+    if (!receipt.documentPath) {
+      throw new NotFoundException(`No document uploaded for this receipt`);
+    }
+
+    const filePath = join(process.cwd(), receipt.documentPath);
+    if (!existsSync(filePath)) {
+      throw new NotFoundException(`File not found on server: ${receipt.documentPath}`);
+    }
+
+    return { filePath, fileName: receipt.documentPath.split('/').pop() };
   }
 }

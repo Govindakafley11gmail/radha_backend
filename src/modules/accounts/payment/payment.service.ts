@@ -244,8 +244,7 @@ export class PaymentService {
       .getRepository(Payment)
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.invoice', 'invoice')
-      .leftJoinAndSelect('payment.accountType', 'accountType')
-      .leftJoinAndSelect('payment.details', 'details');
+      .leftJoinAndSelect('payment.supplier', 'supplier')
 
     if (referenceNumber) {
       query.andWhere('payment.referenceNumber ILIKE :ref', {

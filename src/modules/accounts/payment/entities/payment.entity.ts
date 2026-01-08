@@ -9,9 +9,11 @@ import {
     OneToMany,
     CreateDateColumn,
     UpdateDateColumn,
+    JoinColumn,
 } from 'typeorm';
 import { PurchaseInvoice } from '../../purchase-invoice/entities/purchase-invoice.entity';
 import { RawMaterialReceipt } from 'src/modules/cost-accounting/raw-meterials/raw-material-receipt/entities/raw-material-receipt.entity';
+import { Supplier } from '../../supplier/entities/supplier.entity';
 
 export enum PaymentStatus {
     PENDING = 'Pending',
@@ -51,11 +53,17 @@ export class Payment {
 
     @Column({ nullable: true })
     referenceNumber: string; // cheque number, transaction ID, etc.
+    @Column({ nullable: true })
+    supplierId: string;
+
+    @ManyToOne(() => Supplier, { nullable: true })
+    @JoinColumn({ name: 'supplierId' })
+    supplier: Supplier;
 
     @Column({ nullable: true })
     description: string;
 
-    @Column({nullable:true})
+    @Column({ nullable: true })
     accountNo: string;
 
     @OneToMany(() => AccountTransactionDetail, detail => detail.payment)
@@ -66,17 +74,17 @@ export class Payment {
 
     @UpdateDateColumn()
     updatedAt: Date;
-    
+
     @ManyToOne(
-    () => RawMaterialReceipt,
-    (receipt) => receipt.payments,
-    { nullable: true },
-  )
-  rawMaterialReceipt?: RawMaterialReceipt;
+        () => RawMaterialReceipt,
+        (receipt) => receipt.payments,
+        { nullable: true },
+    )
+    rawMaterialReceipt?: RawMaterialReceipt;
 
     @Column({ default: false })
     isDeleted: boolean;
 
- @Column({ type: 'text', nullable: true })
-documentPath: string;
+    @Column({ type: 'text', nullable: true })
+    documentPath: string;
 }
