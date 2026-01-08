@@ -143,7 +143,7 @@ async findAll(@Query('search') search?: string) {
     }
   }
    // ================= DOWNLOAD MOU =================
-  @Get(':id/download')
+  @Get('download/:id')
   async downloadDocument(@Param('id') id: string, @Res() res: Response) {
     try {
       const { filePath, fileName } = await this.rawMaterialReceiptService.downloadDocument(id);
@@ -152,7 +152,6 @@ async findAll(@Query('search') search?: string) {
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Type', mimeType);
       res.setHeader('Access-Control-Expose-Headers', 'Content-Disposition');
-
       return res.sendFile(filePath);
     } catch (error) {
       return res.status(HttpStatus.NOT_FOUND).json({
