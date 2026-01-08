@@ -96,7 +96,7 @@ export class UsersController {
       res.cookie('accessToken', accessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        maxAge: 15 * 60 * 1000, // 15 minutes
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 15 minutes
         sameSite: 'lax',
       });
 
