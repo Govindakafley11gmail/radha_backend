@@ -7,7 +7,7 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { Payment, PaymentMode } from './entities/payment.entity';
+import { Payment, PaymentMode, PaymentStatus } from './entities/payment.entity';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { AccountType } from 'src/modules/master/account_types/entities/account_type.entity';
 import { AccountTransaction } from 'src/modules/public/general_transaction/account_transaction/entities/account_transaction.entity';
@@ -72,6 +72,7 @@ export class PaymentService {
       payment.referenceNumber = dto.referenceNumber ?? payment.referenceNumber;
       payment.description = dto.description ?? payment.description;
       payment.accountType = cashOrBank;
+      payment.status = PaymentStatus.COMPLETED
 
     const updatedPayment=  await queryRunner.manager.save(payment);
     
@@ -245,6 +246,8 @@ export class PaymentService {
       .createQueryBuilder('payment')
       .leftJoinAndSelect('payment.invoice', 'invoice')
       .leftJoinAndSelect('payment.supplier', 'supplier')
+            .leftJoinAndSelect('payment.rawMaterialReceipt', 'rawMaterialReceipt')
+
 
     if (referenceNumber) {
       query.andWhere('payment.referenceNumber ILIKE :ref', {

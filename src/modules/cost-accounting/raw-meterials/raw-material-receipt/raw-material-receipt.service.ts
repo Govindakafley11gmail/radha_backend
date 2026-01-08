@@ -101,7 +101,8 @@ export class RawMaterialReceiptService {
         paymentMode: createDto.paymentMode,
         description: createDto.payment_remarks,
         documentPath: documentPath ?? undefined,
-        supplierId: createDto.supplier_id
+        supplierId: createDto.supplier_id,
+        rawMaterilReceiptId: savedReceipt.id
 
       });
       await queryRunner.manager.save(payment);
