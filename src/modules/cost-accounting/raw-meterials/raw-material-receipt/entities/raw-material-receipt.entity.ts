@@ -48,7 +48,17 @@ export class RawMaterialReceipt {
     @Column({ nullable: true })
     documentPath?: string;
 
+    @Column({nullable: true})
+    status: string;
+
     @ManyToOne(() => RawMaterialInventory, (inventory) => inventory.receipts, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'inventory_id' })
     inventory: RawMaterialInventory;
+
+    //   @OneToMany(
+    //     () => PurchaseInvoiceDetail,
+    //     detail => detail.purchaseInvoice, // links to the property in PurchaseInvoiceDetail
+    //     { cascade: true }
+    //   )
+    //   purchaseInvoiceDetails?: PurchaseInvoiceDetail[];
 }

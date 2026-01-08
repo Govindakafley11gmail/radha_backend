@@ -12,10 +12,11 @@ import { PurchaseInvoice } from 'src/modules/accounts/purchase-invoice/entities/
 import { Supplier } from 'src/modules/accounts/supplier/entities/supplier.entity';
 // import { RawMaterial } from '../raw-material/entities/raw-material.entity';
 import { ReceiptPDFService } from './receiptPDFServices';
-import { Payment, PaymentStatus } from 'src/modules/accounts/payment/entities/payment.entity';
+// import { Payment, PaymentStatus } from 'src/modules/accounts/payment/entities/payment.entity';
 import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
 import { existsSync } from 'fs';
 import { join } from 'path';
+import { Payment } from 'src/modules/accounts/payment/entities/payment.entity';
 @Injectable()
 export class RawMaterialReceiptService {
   constructor(
@@ -52,7 +53,7 @@ export class RawMaterialReceiptService {
       });
       if (!purchaseInvoice) throw new NotFoundException('Purchase Invoice not found');
 
-     
+
       const lastDispatch = await queryRunner.manager
         .createQueryBuilder(Dispatch, 'dispatch')
         .orderBy('dispatch.versionNo', 'DESC')
@@ -77,35 +78,28 @@ export class RawMaterialReceiptService {
         // rawMaterial,
         supplier,
         purchaseInvoice,
-        // quantityReceived: createDto.quantity_received,
-        // total_unit_cost: createDto.total_unit_cost,
-        // freightCost: createDto.freight_cost ?? 0,
-        // importDuty: createDto.import_duty ?? 0,
-        // scrapQuantity: createDto.scrap_quantity ?? 0,
-        // gst_tax_amount: createDto.gst_tax_amount,
-        // purchaseTaxAmount: purchaseTax,
         payment_remarks: createDto.payment_remarks,
         receipt_no: dispatchNo,
         receivedDate: createDto.received_date ? new Date(createDto.received_date) : new Date(),
         documentPath: documentPath ?? undefined, // <-- make sure null is converted to undefined
+        status: 'Processed'
       });
       const savedReceipt = await queryRunner.manager.save(receipt);
-     console.log(createDto.supplier_id)
+      console.log(createDto.supplier_id)
       // Optionally create a payment entry
-      const payment = queryRunner.manager.create(Payment, {
-        invoice: purchaseInvoice,
-        amount: createDto.total_cost,
-        paymentDate: new Date().toISOString().split('T')[0],
-        status: PaymentStatus.PENDING,
-        accountNo: createDto.accountNo,
-        paymentMode: createDto.paymentMode,
-        description: createDto.payment_remarks,
-        documentPath: documentPath ?? undefined,
-        supplierId: createDto.supplier_id,
-        rawMaterilReceiptId: savedReceipt.id
-
-      });
-      await queryRunner.manager.save(payment);
+      // const payment = queryRunner.manager.create(Payment, {
+      //   invoice: purchaseInvoice,
+      //   amount: createDto.total_cost,
+      //   paymentDate: new Date().toISOString().split('T')[0],
+      //   status: PaymentStatus.PENDING,
+      //   accountNo: createDto.accountNo,
+      //   paymentMode: createDto.paymentMode,
+      //   description: createDto.payment_remarks,
+      //   documentPath: documentPath ?? undefined,
+      //   supplierId: createDto.supplier_id,
+      //   rawMaterilReceiptId: savedReceipt.id
+      // });
+      // await queryRunner.manager.save(payment);
 
       await queryRunner.commitTransaction();
       return savedReceipt;
@@ -138,6 +132,49 @@ export class RawMaterialReceiptService {
     return qb.getMany();
   }
 
+  // ================= FIND ALL BY USER ROLE =================
+  async findAllByUserRole(
+    userId: string,
+    roles: any[],
+    search?: string,
+  ): Promise<RawMaterialReceipt[]> {
+    const qb = this.receiptRepository
+      .createQueryBuilder('receipt')
+      .leftJoinAndSelect('receipt.supplier', 'supplier')
+      .leftJoinAndSelect('receipt.purchaseInvoice', 'invoice')
+      .leftJoinAndSelect('invoice.purchaseInvoiceDetails', 'purchaseInvoiceDetails');
+
+
+    // ---------------- ROLE-BASED FILTER ----------------
+    if (roles.some(r => r.name === 'Admin')) {
+      // Admin: fetch all, no status filter
+    } else if (roles.some(r => r.name === 'Manager')) {
+      // Manager: only receipts with status 'Processed'
+      qb.andWhere('receipt.status = :status', { status: 'Processed' });
+    } else if (roles.some(r => r.name === 'Head')) {
+      // Head: only receipts with status 'Verified'
+      qb.andWhere('receipt.status = :status', { status: 'Verified' });
+    }else{
+        qb.andWhere('1=0'); // always false
+
+    } 
+
+    // ---------------- SEARCH FILTER ----------------
+    if (search) {
+      qb.andWhere(
+        `invoice.invoiceNo ILIKE :search OR supplier.name ILIKE :search`,
+        { search: `%${search}%` },
+      );
+    }
+
+    // ---------------- SORT ----------------
+    qb.orderBy('receipt.created_at', 'DESC');
+
+    return qb.getMany();
+  }
+
+
+
 
   // ================= FIND ONE =================
   async findOne(id: string): Promise<RawMaterialReceipt> {
@@ -155,13 +192,62 @@ export class RawMaterialReceiptService {
   async update(
     id: string,
     updateDto: UpdateRawMaterialReceiptDto,
+    roles: any[],
   ): Promise<RawMaterialReceipt> {
-    const receipt = await this.findOne(id);
-    Object.assign(receipt, updateDto);
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
+    try {
+      // 1️⃣ Find the existing receipt
+      const receipt = await this.findOne(id);
 
-    return this.receiptRepository.save(receipt);
+      // 2️⃣ Determine role-based status
+      const isAdmin = roles.some(r => r.name === 'Admin');
+      const isManager = roles.some(r => r.name === 'Manager');
+
+      if (isAdmin) {
+        receipt.status = 'Approved';
+      } else if (isManager) {
+        receipt.status = 'Verified';
+      }
+
+      // 3️⃣ Merge other updates from DTO (excluding status)
+      Object.assign(receipt);
+
+      // 4️⃣ Save the receipt first
+      const savedReceipt = await queryRunner.manager.save(receipt);
+
+      // 5️⃣ If Admin approved, create a Payment entry
+      if (receipt.status === 'Approved') {
+        // Make sure you import Payment and PaymentStatus at the top
+        const payment = queryRunner.manager.create(Payment, {
+          invoice: receipt.purchaseInvoice,
+          amount: (receipt.purchaseInvoice.finalCost) ?? 0,
+          paymentDate: new Date().toISOString().split('T')[0],
+          // status: 'Pending',
+          accountNo: receipt.receipt_no,
+          paymentMode: receipt.payment_remarks,
+          description: receipt.payment_remarks,
+          documentPath: receipt.documentPath ?? undefined,
+          supplierId: receipt.supplier.supplier_id,
+          rawMaterilReceiptId: savedReceipt.id,
+        });
+        await queryRunner.manager.save(payment);
+      }
+
+      await queryRunner.commitTransaction();
+      return savedReceipt;
+    } catch (error) {
+      await queryRunner.rollbackTransaction();
+      throw error;
+    } finally {
+      await queryRunner.release();
+    }
   }
+
+
+
   //   "freightCost": 100,
   // "GStTaxAmount": 110.25,
   // "importDuty": 200,
@@ -226,7 +312,7 @@ export class RawMaterialReceiptService {
 
     return receipt;
   }
-   async downloadDocument(id: string): Promise<{ filePath: string; fileName: string| undefined }> {
+  async downloadDocument(id: string): Promise<{ filePath: string; fileName: string | undefined }> {
     const receipt = await this.receiptRepository.findOne({ where: { id } });
     if (!receipt) throw new NotFoundException(`Receipt ${id} not found`);
 

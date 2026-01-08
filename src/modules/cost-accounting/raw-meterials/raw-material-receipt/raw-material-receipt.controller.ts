@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -14,6 +15,7 @@ import {
   UploadedFile,
   UseInterceptors,
   Query,
+  Req,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -25,18 +27,33 @@ import type { Response } from 'express';
 import { extname } from 'path';
 import * as mime from 'mime-types';
 
+interface UserRole {
+  id: number;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+interface AuthRequest {
+  user: {
+    id: string;
+    role: UserRole;
+  };
+}
+
 const responseService = new ResponseService();
 
 @Controller('raw-material-receipt')
 export class RawMaterialReceiptController {
-  constructor(private readonly rawMaterialReceiptService: RawMaterialReceiptService) { }
+  constructor(private readonly rawMaterialReceiptService: RawMaterialReceiptService) {}
 
-  // ✅ Create with file upload
+  // ================= CREATE WITH FILE UPLOAD =================
   @Post()
   @UseInterceptors(
     FileInterceptor('documentPath', {
       storage: diskStorage({
-        destination: './uploads/raw-material', // folder to save files
+        destination: './uploads/raw-material',
         filename: (req, file, cb) => {
           const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
           const fileExt = extname(file.originalname);
@@ -49,20 +66,17 @@ export class RawMaterialReceiptController {
         }
         cb(null, true);
       },
-      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB limit
+      limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
     }),
   )
   async create(
-    @Body() createRawMaterialReceiptDto: CreateRawMaterialReceiptDto,
+    @Body() createDto: CreateRawMaterialReceiptDto,
     @UploadedFile() documentPath: Express.Multer.File,
   ) {
     try {
-      console.log("kjfkgg")
-
-      // Pass file path to service
       const receipt = await this.rawMaterialReceiptService.createAndPostReceipt(
-        createRawMaterialReceiptDto,
-        documentPath?.path, // path to save in DB
+        createDto,
+        documentPath?.path,
       );
       return responseService.success(receipt, 'Raw material receipt created successfully', HttpStatus.CREATED);
     } catch (error) {
@@ -74,17 +88,42 @@ export class RawMaterialReceiptController {
     }
   }
 
-@Get()
-async findAll(@Query('search') search?: string) {
-  const receipts = await this.rawMaterialReceiptService.findAll(search);
-  return responseService.success(
-    receipts,
-    'Raw material receipts fetched successfully',
-    HttpStatus.OK,
-  );
-}
+  // ================= GET APPROVALS / ROLE-BASED =================
+  @Get('/approval')
+  async findAllByUserRole(
+    @Req() req: AuthRequest,
+    @Query('search') search?: string,
+  ) {
+    try {
+      const employeeId = req.user.id;
+const roles = req.user.role as unknown as UserRole[]; // Type assertion
 
+      // const hasFullAccess = roleName === 'Admin' || roleName === 'Manager';
 
+      const receipts = await this.rawMaterialReceiptService.findAllByUserRole(
+        employeeId,
+        roles,
+        search,
+      );
+
+      return responseService.success(receipts, 'Raw material receipts fetched successfully', HttpStatus.OK);
+    } catch (error) {
+      return responseService.error(
+        error instanceof Error ? error.message : String(error),
+        'Failed to fetch raw material receipts',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  // ================= GET ALL =================
+  @Get()
+  async findAll(@Query('search') search?: string) {
+    const receipts = await this.rawMaterialReceiptService.findAll(search);
+    return responseService.success(receipts, 'Raw material receipts fetched successfully', HttpStatus.OK);
+  }
+
+  // ================= GET ONE =================
   @Get(':id')
   async findOne(@Param('id') id: string) {
     try {
@@ -99,13 +138,18 @@ async findAll(@Query('search') search?: string) {
     }
   }
 
+  // ================= UPDATE =================
   @Patch(':id')
   async update(
     @Param('id') id: string,
-    @Body() updateRawMaterialReceiptDto: UpdateRawMaterialReceiptDto,
+    @Body() updateDto: UpdateRawMaterialReceiptDto,
+        @Req() req: AuthRequest,
+
   ) {
     try {
-      const updatedReceipt = await this.rawMaterialReceiptService.update(id, updateRawMaterialReceiptDto);
+      const roles = req.user.role as unknown as UserRole[]; // Type assertion
+
+      const updatedReceipt = await this.rawMaterialReceiptService.update(id, updateDto,roles);
       return responseService.success(updatedReceipt, 'Raw material receipt updated successfully', HttpStatus.OK);
     } catch (error) {
       return responseService.error(
@@ -116,6 +160,7 @@ async findAll(@Query('search') search?: string) {
     }
   }
 
+  // ================= DELETE =================
   @Delete(':id')
   async remove(@Param('id') id: string) {
     try {
@@ -130,10 +175,10 @@ async findAll(@Query('search') search?: string) {
     }
   }
 
+  // ================= GENERATE PDF =================
   @Get('generate/:id')
   async generateReceipt(@Param('id') id: string, @Res() res: Response) {
     try {
-      
       await this.rawMaterialReceiptService.generateReceipt(id, res);
     } catch (error) {
       res.status(HttpStatus.BAD_REQUEST).json({
@@ -142,12 +187,12 @@ async findAll(@Query('search') search?: string) {
       });
     }
   }
-   // ================= DOWNLOAD MOU =================
+
+  // ================= DOWNLOAD DOCUMENT =================
   @Get('download/:id')
   async downloadDocument(@Param('id') id: string, @Res() res: Response) {
     try {
       const { filePath, fileName } = await this.rawMaterialReceiptService.downloadDocument(id);
-
       const mimeType = mime.lookup(filePath) || 'application/octet-stream';
       res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
       res.setHeader('Content-Type', mimeType);
