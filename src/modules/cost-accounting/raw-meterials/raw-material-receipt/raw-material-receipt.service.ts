@@ -223,12 +223,13 @@ export class RawMaterialReceiptService {
       if (receipt.status === 'Approved') {
         const receipt = await this.receiptRepository.findOne({
           where: { id },
-          relations: ["supplier"],
+          relations: ["supplier","purchaseInvoice"],
 
         });
         if (!receipt) {
           throw new NotFoundException('Raw material receipt not found');
         }        // Make sure you import Payment and PaymentStatus at the top
+        console.log(receipt)
         const payment = queryRunner.manager.create(Payment, {
           rawMaterialReceipt: receipt,
           invoice: receipt.purchaseInvoice,
