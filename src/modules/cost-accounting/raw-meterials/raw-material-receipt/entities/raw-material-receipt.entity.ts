@@ -47,7 +47,7 @@ export class RawMaterialReceipt {
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;
-    @Column({ nullable: true })
+    @Column({ type: 'numeric', nullable: true })
 
     total_cost: number;
 
