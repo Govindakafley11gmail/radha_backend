@@ -81,8 +81,7 @@ export class Payment {
         { nullable: true },
     )
     rawMaterialReceipt?: RawMaterialReceipt;
-    @Column({nullable:true})
-    rawMaterilReceiptId: string;
+ 
 
     @Column({ default: false })
     isDeleted: boolean;

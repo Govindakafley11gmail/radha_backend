@@ -153,10 +153,10 @@ export class RawMaterialReceiptService {
     } else if (roles.some(r => r.name === 'Head')) {
       // Head: only receipts with status 'Verified'
       qb.andWhere('receipt.status = :status', { status: 'Verified' });
-    }else{
-        qb.andWhere('1=0'); // always false
+    } else {
+      qb.andWhere('1=0'); // always false
 
-    } 
+    }
 
     // ---------------- SEARCH FILTER ----------------
     if (search) {
@@ -218,18 +218,24 @@ export class RawMaterialReceiptService {
 
       // 5️⃣ If Admin approved, create a Payment entry
       if (receipt.status === 'Approved') {
-        // Make sure you import Payment and PaymentStatus at the top
+        const receipt = await this.receiptRepository.findOne({
+          where: { id },
+        });
+
+        if (!receipt) {
+          throw new NotFoundException('Raw material receipt not found');
+        }        // Make sure you import Payment and PaymentStatus at the top
         const payment = queryRunner.manager.create(Payment, {
+          rawMaterialReceipt: receipt,
           invoice: receipt.purchaseInvoice,
           amount: (receipt.purchaseInvoice.finalCost) ?? 0,
           paymentDate: new Date().toISOString().split('T')[0],
           // status: 'Pending',
           accountNo: receipt.receipt_no,
-          paymentMode: receipt.payment_remarks,
+          // paymentMode: receipt.payment_remarks,
           description: receipt.payment_remarks,
           documentPath: receipt.documentPath ?? undefined,
           supplierId: receipt.supplier.supplier_id,
-          rawMaterilReceiptId: savedReceipt.id,
         });
         await queryRunner.manager.save(payment);
       }
