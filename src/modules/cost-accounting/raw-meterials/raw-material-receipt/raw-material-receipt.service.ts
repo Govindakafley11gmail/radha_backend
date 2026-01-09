@@ -204,7 +204,7 @@ export class RawMaterialReceiptService {
       const receipt = await this.findOne(id);
 
       // 2️⃣ Determine role-based status
-      const isAdmin = roles.some(r => r.name === 'Admin');
+      const isAdmin = roles.some(r => r.name === 'Head');
       const isManager = roles.some(r => r.name === 'Manager');
 
       if (isAdmin) {
