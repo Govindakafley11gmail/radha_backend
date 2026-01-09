@@ -28,10 +28,13 @@ export class RawMaterialReceipt {
 
     @Column({ type: 'text', nullable: true })
     payment_remarks?: string;
-    @Column({ type: 'timestamp',nullable: true})
+    @Column({ type: 'timestamp', nullable: true })
 
-    received_date:Date;
+    received_date: Date;
 
+    @Column({ type: 'text', nullable: true })
+
+    paymentMode: string;
     @Column({ type: 'boolean', default: false })
     is_deleted: boolean;
 
@@ -44,11 +47,14 @@ export class RawMaterialReceipt {
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
     updated_at: Date;
+    @Column({ nullable: true })
+
+    total_cost: number;
 
     @Column({ nullable: true })
     documentPath?: string;
 
-    @Column({nullable: true})
+    @Column({ nullable: true })
     status: string;
 
     @ManyToOne(() => RawMaterialInventory, (inventory) => inventory.receipts, { onDelete: 'CASCADE' })

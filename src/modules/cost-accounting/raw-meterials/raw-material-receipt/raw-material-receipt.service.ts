@@ -78,6 +78,9 @@ export class RawMaterialReceiptService {
         supplier,
         purchaseInvoice,
         payment_remarks: createDto.payment_remarks,
+        paymentMode: createDto.paymentMode,
+        total_cost: createDto.total_cost,
+        accountNo: createDto.accountNo,
         receipt_no: dispatchNo,
         receivedDate: createDto.received_date ? new Date(createDto.received_date) : new Date(),
         documentPath: documentPath ?? undefined, // <-- make sure null is converted to undefined
@@ -232,7 +235,7 @@ export class RawMaterialReceiptService {
           paymentDate: new Date().toISOString().split('T')[0],
           // status: 'Pending',
           accountNo: receipt.receipt_no,
-          // paymentMode: receipt.payment_remarks,
+          paymentMode: receipt.paymentMode,
           description: receipt.payment_remarks,
           documentPath: receipt.documentPath ?? undefined,
           supplierId: receipt.supplier.supplier_id,
