@@ -231,7 +231,7 @@ export class RawMaterialReceiptService {
         const payment = queryRunner.manager.create(Payment, {
           rawMaterialReceipt: receipt,
           invoice: receipt.purchaseInvoice,
-          amount: (receipt.purchaseInvoice.finalCost) ?? 0,
+          amount: (receipt.total_cost) ?? 0,
           paymentDate: new Date().toISOString().split('T')[0],
           // status: 'Pending',
           accountNo: receipt.receipt_no,
