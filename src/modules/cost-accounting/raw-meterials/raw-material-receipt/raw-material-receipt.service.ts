@@ -204,7 +204,7 @@ export class RawMaterialReceiptService {
       const receipt = await this.findOne(id);
 
       // 2️⃣ Determine role-based status
-      const isAdmin = roles.some(r => r.name === 'Head');
+      const isAdmin = roles.some(r => r.name === 'Admin');
       const isManager = roles.some(r => r.name === 'Manager');
 
       if (isAdmin) {
@@ -223,8 +223,9 @@ export class RawMaterialReceiptService {
       if (receipt.status === 'Approved') {
         const receipt = await this.receiptRepository.findOne({
           where: { id },
-        });
+          relations: ["supplier"],
 
+        });
         if (!receipt) {
           throw new NotFoundException('Raw material receipt not found');
         }        // Make sure you import Payment and PaymentStatus at the top
