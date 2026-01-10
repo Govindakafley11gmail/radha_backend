@@ -6,6 +6,7 @@ import { SalesInvoiceDetail } from '../../sales-invoice-details/entities/sales-i
 import { Receipt } from '../../receipt/entities/receipt.entity';
 import { PriceList } from 'src/modules/sales-revenue/pricelist/entities/pricelist.entity';
 import { SalesReturn } from 'src/modules/sales-revenue/sales-return/entities/sales-return.entity';
+import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/taxinvoice.entity';
 
 @Entity()
 export class SalesInvoice {
@@ -40,8 +41,8 @@ export class SalesInvoice {
   @OneToMany(() => SalesInvoiceDetail, (detail) => detail.salesInvoice, { cascade: true })
   details: SalesInvoiceDetail[];
 
-  // @OneToMany(() => TaxInvoice, (tax) => tax.salesInvoice, { cascade: true })
-  // taxInvoices?: TaxInvoice[];
+  @OneToMany(() => TaxInvoice, (tax) => tax.salesInvoice, { cascade: true })
+  taxInvoices?: TaxInvoice[];
 
 
   @OneToMany(() => Receipt, receipt => receipt.salesInvoice)

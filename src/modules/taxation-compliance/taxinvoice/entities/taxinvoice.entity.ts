@@ -1,9 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 // import { SalesInvoice } from 'src/modules/account_receivable/sales-invoice/entities/sales-invoice.entity';
+import { SalesInvoice } from 'src/modules/account_receivable/sales-invoice/entities/sales-invoice.entity';
 import {
   Entity,
   Column,
   PrimaryGeneratedColumn,
+  JoinColumn,
+  ManyToOne,
   // ManyToOne,
   // JoinColumn,
 } from 'typeorm';
@@ -14,9 +17,9 @@ export class TaxInvoice {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  // @ManyToOne(() => SalesInvoice, (invoice) => invoice.taxInvoices, { nullable: false, onDelete: 'CASCADE' })
-  // @JoinColumn({ name: 'sales_invoice_id' })
-  // salesInvoice: SalesInvoice;
+  @ManyToOne(() => SalesInvoice, (invoice) => invoice.taxInvoices, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'sales_invoice_id' })
+  salesInvoice: SalesInvoice;
 
   @Column()
   customerId: string;
