@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsDateString, IsOptional, IsBoolean } from "class-validator";
+import { IsString, IsNumber, IsOptional, IsBoolean } from "class-validator";
 
 export class CreatePricelistDto {
       @IsString()
@@ -9,9 +9,6 @@ export class CreatePricelistDto {
 
   @IsNumber()
   price: number;
-
-  @IsDateString()
-  effective_date: string;
 
   @IsOptional()
   @IsBoolean()
