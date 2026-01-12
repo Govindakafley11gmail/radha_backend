@@ -32,7 +32,7 @@ export class PricelistService {
   }
 
   findAll() {
-    return this.pricelistRepo.find({ relations: ['salesInvoice'] });
+    return this.pricelistRepo.find({ relations: ['salesInvoice'] , where:{isDeleted: false}});
   }
 
   async findOne(id: string) {
