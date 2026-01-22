@@ -21,7 +21,7 @@ export class UsersService {
 
   // Create user with hashed password
   async create(createUserDto: CreateUserDto): Promise<User> {
-    const { name, email, password, roleIds = [], permissionIds = [] } = createUserDto;
+    const { name, email, status, password, roleIds = [], permissionIds = [] } = createUserDto;
 
     const roles = roleIds.length
       ? await this.roleRepository.find({ where: { id: In(roleIds) } })
@@ -37,6 +37,7 @@ export class UsersService {
     const user = this.userRepository.create({
       name,
       email,
+      status: status ?? false,
       password: hashedPassword,
       roles,
       permissions,
