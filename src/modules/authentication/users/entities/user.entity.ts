@@ -41,6 +41,9 @@ export class User {
     inverseJoinColumn: { name: 'permission_id', referencedColumnName: 'id' },
   })
   permissions: Permission[];
+  @Column({ type: 'boolean', default: false })
+  status: boolean;
+
 
   @CreateDateColumn({ type: 'timestamp' })
   createdAt: Date;
