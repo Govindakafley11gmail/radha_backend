@@ -22,7 +22,7 @@ export class AccountTransaction {
     @Column({ nullable: true })
     description?: string;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'date' })
     transactionDate: Date;
 
     @Column({  nullable: true })
@@ -31,6 +31,7 @@ export class AccountTransaction {
     @Column({ type: 'varchar',  nullable: true })
     updatedBy?: string;
 
+    
     @Column({ default: false })
     isDeleted: boolean;
 

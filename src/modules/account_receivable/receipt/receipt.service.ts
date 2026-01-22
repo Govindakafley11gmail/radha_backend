@@ -117,7 +117,7 @@ export class ReceiptService {
       // 3️⃣ Fetch account types from DB
       const accountTypes = await this.accountTypeRepository.find({
         where: [
-          { name: 'Accounts Receivable' },
+          { name: 'Accounts Received' },
           { name: debitAccountName },
         ],
         relations: ['group'],
@@ -142,8 +142,8 @@ export class ReceiptService {
           description: `${savedReceipt.payment_method} received`,
         },
         {
-          accountTypeID: accountMap['Accounts Receivable'].id,
-          groupId: accountMap['Accounts Receivable'].groupId,
+          accountTypeID: accountMap['Accounts Received'].id,
+          groupId: accountMap['Accounts Received'].groupId,
           debit: 0,
           credit: savedReceipt.amount_received,
           description: `Reduce AR for Invoice ID: ${savedReceipt.sales_invoice_id}`,
@@ -189,14 +189,12 @@ export class ReceiptService {
       order: { receipt_date: 'DESC' },
     });
   }
-
   /* ================= FIND ONE ================= */
   async findOne(id: string): Promise<Receipt> {
     const receipt = await this.receiptRepo.findOne({
       where: { id, isDeleted: false },
       relations: ['customer', 'salesInvoice'],
     });
-
     if (!receipt) {
       throw new NotFoundException('Receipt not found');
     }

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, DataSource } from 'typeorm';
@@ -5,6 +6,7 @@ import { ProductUnitCost } from './entities/product-unit-cost.entity';
 import { ProductionBatch } from '../production-batch/entities/production-batch.entity';
 import { CreateProductUnitCostDto } from './dto/create-product-unit-cost.dto';
 import { UpdateProductUnitCostDto } from './dto/update-product-unit-cost.dto';
+import { AccountpostingService, CostEntry } from 'src/modules/public/accountposting/accountposting.service';
 
 @Injectable()
 export class ProductUnitCostService {
@@ -16,6 +18,8 @@ export class ProductUnitCostService {
 
     @InjectRepository(ProductionBatch)
     private readonly batchRepo: Repository<ProductionBatch>,
+
+    private readonly accountPostingService: AccountpostingService, // Inject AccountpostingService
   ) {}
 
   // ----------------------
@@ -70,7 +74,6 @@ export class ProductUnitCostService {
   // ----------------------
   async update(id: string, updateDto: UpdateProductUnitCostDto): Promise<ProductUnitCost> {
     const unitCost = await this.findOne(id);
-
     Object.assign(unitCost, updateDto);
     return await this.productUnitCostRepo.save(unitCost);
   }
@@ -82,4 +85,66 @@ export class ProductUnitCostService {
     const unitCost = await this.findOne(id);
     await this.productUnitCostRepo.remove(unitCost);
   }
+
+  // ----------------------
+  // POST TOTAL BATCH COST TO ACCOUNTING
+  // ----------------------
+async postBatchCostToAccounting(batchId: string): Promise<void> {
+  return await this.dataSource.transaction(async (manager) => {
+    const batch = await manager.findOne(ProductionBatch, {
+      where: { id: batchId },
+      relations: ['productUnitCosts', 'machineUsageCosts'],
+    });
+    if (!batch) throw new NotFoundException('Batch not found');
+
+    const unitCosts = batch.productUnitCosts || [];
+    const machineCosts = batch.machineUsageCosts || [];
+
+   const totalUnitCost = unitCosts.reduce((sum, uc) => 
+  sum +
+  (Number(uc.costPerKg) * Number(batch.quantityProduced || 0)) +
+  // (Number(uc.costPerNail) * Number(batch.totalNailsProduced || 0)) +
+  Number(uc.processCuttingCost || 0) +
+  Number(uc.processHeadingCost || 0) +
+  Number(uc.processPolishingCost || 0) +
+  Number(uc.processPackingCost || 0),
+0);
+
+
+ const totalMachineCost = machineCosts.reduce((sum, m) =>
+  sum +
+  Number(m.operatingCost || 0) +
+  Number(m.depreciation || 0) +
+  Number(m.powerCost || 0) +
+  Number(m.maintenanceCost || 0),
+0);
+
+    const totalProductionCost = totalUnitCost + totalMachineCost;
+
+    const costEntries: CostEntry[] = [
+      {
+        accountId: batch.id,
+        debit: totalProductionCost,
+        credit: 0,
+        accountTypeName: 'Finished Goods',
+        referenceId: batch.id,
+      },
+      {
+        accountId: batch.id,
+        debit: 0,
+        credit: totalProductionCost,
+        accountTypeName: 'Work In Progress',
+        referenceId: batch.id,
+      },
+    ];
+
+    await this.accountPostingService.postCosts(
+      batch.id,
+      `RADHA/${new Date().getFullYear()}/BatchCost/${batch.batchNumber}`,
+      `Production cost posting for batch ${batch.batchNumber}`,
+      costEntries,
+    );
+  });
+}
+
 }

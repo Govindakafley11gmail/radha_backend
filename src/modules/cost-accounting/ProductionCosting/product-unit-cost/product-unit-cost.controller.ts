@@ -102,4 +102,17 @@ export class ProductUnitCostController {
       );
     }
   }
+  @Get('post-batch-cost/:batchId')
+  async postBatchCostToAccounting(@Param('batchId') batchId: string) {
+    try {
+      await this.productUnitCostService.postBatchCostToAccounting(batchId);
+      return responseService.success(null, 'Batch cost posted to accounting successfully', HttpStatus.OK);
+    } catch (error) {
+      return responseService.error(
+        error instanceof Error ? error.message : String(error),
+        `Failed to post batch cost to accounting for Batch ID ${batchId}`,
+        HttpStatus.BAD_REQUEST
+      );
+    }
+  }
 }

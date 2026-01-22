@@ -15,6 +15,18 @@ export enum DepreciationMethod {
 
 @Entity('machines')
 export class Machine {
+  depreciationAccountId(id: string, arg1: string, id1: string, depreciationAccountId: any, depreciation: number, arg5: number) {
+    throw new Error('Method not implemented.');
+  }
+  powerAccountId(id: string, arg1: string, id1: string, powerAccountId: any, powerCost: number, arg5: number) {
+    throw new Error('Method not implemented.');
+  }
+  maintenanceAccountId(id: string, arg1: string, id1: string, maintenanceAccountId: any, maintenanceCost: number, arg5: number) {
+    throw new Error('Method not implemented.');
+  }
+  operatingExpenseAccountId(id: string, arg1: string, id1: string, operatingExpenseAccountId: any, operatingCost: number, arg5: number) {
+    throw new Error('Method not implemented.');
+  }
   @PrimaryGeneratedColumn('uuid')
   id: string;
 

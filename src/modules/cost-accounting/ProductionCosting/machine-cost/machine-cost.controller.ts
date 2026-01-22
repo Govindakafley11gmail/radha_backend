@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, HttpStatus } from '@nestjs/common';
 import { MachineCostService } from './machine-cost.service';
 import { CreateMachineCostDto } from './dto/create-machine-cost.dto';
 import { UpdateMachineCostDto } from './dto/update-machine-cost.dto';
@@ -85,17 +85,17 @@ export class MachineCostController {
   // ----------------------
   // Delete Machine Cost
   // ----------------------
-  @Delete(':id')
-  async remove(@Param('id') id: string) {
-    try {
-      await this.machineCostService.remove(id);
-      return responseService.success(null, 'Machine cost deleted successfully', HttpStatus.NO_CONTENT);
-    } catch (error) {
-      return responseService.error(
-        error instanceof Error ? error.message : String(error),
-        'Failed to delete machine cost',
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-  }
+  // @Delete(':id')
+  // async remove(@Param('id') id: string) {
+  //   try {
+  //     await this.machineCostService.remove(id);
+  //     return responseService.success(null, 'Machine cost deleted successfully', HttpStatus.NO_CONTENT);
+  //   } catch (error) {
+  //     return responseService.error(
+  //       error instanceof Error ? error.message : String(error),
+  //       'Failed to delete machine cost',
+  //       HttpStatus.BAD_REQUEST,
+  //     );
+  //   }
+  // }
 }

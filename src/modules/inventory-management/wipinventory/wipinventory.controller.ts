@@ -16,7 +16,8 @@ export class WipinventoryController {
   @Post()
   async create(@Body() createWipinventoryDto: CreateWipinventoryDto) {
     try {
-      const inventory = await this.wipinventoryService.create(createWipinventoryDto);
+      console.log('Creating WIP Inventory with DTO:', createWipinventoryDto);
+      const inventory = await this.wipinventoryService.postWIPInventory(createWipinventoryDto.batchId);
 
       return responseService.success(
         inventory,

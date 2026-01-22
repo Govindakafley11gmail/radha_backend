@@ -26,4 +26,7 @@ export class LaborCost {
 
   @CreateDateColumn()
   transactionDate: Date;
+
+  @Column({ nullable: true })
+  type: string;
 }

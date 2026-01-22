@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { AccountpostingService } from './accountposting.service';
+import { Controller, Get, Post, Body, Param, Delete } from '@nestjs/common';
+import { AccountpostingService, CostEntry } from './accountposting.service';
 import { CreateAccountpostingDto } from './dto/create-accountposting.dto';
-import { UpdateAccountpostingDto } from './dto/update-accountposting.dto';
 
 @Controller('accountposting')
 export class AccountpostingController {
@@ -9,7 +8,23 @@ export class AccountpostingController {
 
   @Post()
   create(@Body() createAccountpostingDto: CreateAccountpostingDto) {
-    return this.accountpostingService.create(createAccountpostingDto);
+    const voucherNo = createAccountpostingDto.voucherNo || 'PRODUCTION_COST';
+
+    // Map DTO to service CostEntry[]
+    const costEntries: CostEntry[] = createAccountpostingDto.costEntries.map((e) => ({
+      accountId: e.accountId,
+      debit: e.debit || 0,
+      credit: e.credit || 0,
+      referenceType: e.referenceType,
+      referenceId: e.referenceId,
+    }));
+
+    return this.accountpostingService.postCosts(
+      createAccountpostingDto.batchId,
+      createAccountpostingDto.description,
+      voucherNo,
+
+      costEntries);
   }
 
   @Get()
@@ -19,16 +34,12 @@ export class AccountpostingController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.accountpostingService.findOne(+id);
+    return this.accountpostingService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateAccountpostingDto: UpdateAccountpostingDto) {
-    return this.accountpostingService.update(+id, updateAccountpostingDto);
-  }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.accountpostingService.remove(+id);
+    return this.accountpostingService.remove(id);
   }
 }

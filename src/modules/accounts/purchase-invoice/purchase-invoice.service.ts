@@ -114,12 +114,11 @@ await queryRunner.manager.save(dispatchEntity);
         );
         await queryRunner.manager.save(detailEntities);
       }
-
       // 5️⃣ Create tax invoices
       if (createDto.details?.length) {
         const taxInvoiceEntities = createDto.details.map(d =>
           queryRunner.manager.create(TaxInvoice, {
-            salesInvoice: savedInvoice,
+            purchaseInvoice: savedInvoice,
             customerId: createDto.supplierId,
             invoiceNumber: createDto.invoiceNo,
             totalAmount: d.total ?? d.price * d.quantity,
@@ -148,7 +147,7 @@ await queryRunner.manager.save(dispatchEntity);
       const accountTypes = await this.accountTypeRepository.find({
         where: [
           { name: 'Inventory' },
-          { name: 'Other Charges' },
+          { name: 'Freight & Import Duty' },
           { name: 'GST Input' },
           { name: 'Accounts Payable' },
         ],
@@ -162,7 +161,7 @@ await queryRunner.manager.save(dispatchEntity);
           groupId: acc.group?.id,
         };
       });
-
+      
       // 8️⃣ Prepare GL mappings
       const glMappings = [
         {
@@ -178,8 +177,8 @@ await queryRunner.manager.save(dispatchEntity);
           debit: otherCharges,
           credit: 0,
           description: 'Freight & Import Duty',
-          groupId: accountMap['Other Charges']?.groupId,
-          accountTypeID: accountMap['Other Charges']?.id,
+          groupId: accountMap['Freight & Import Duty']?.groupId,
+          accountTypeID: accountMap['Freight & Import Duty']?.id,
         },
         {
           accountCode: 'GST_INPUT',

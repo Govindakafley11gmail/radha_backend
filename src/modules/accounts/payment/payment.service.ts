@@ -106,8 +106,6 @@ export class PaymentService {
       const savedTransaction = await queryRunner.manager.save(transaction);
 
       // 5️⃣ Calculate GST & Base Amount
-      const gstAmount = invoice.taxAmount ?? 0;
-      const baseAmount = dto.amount - gstAmount;
 
       // 6️⃣ Create Transaction Details (Double Entry)
       const transactionDetails = [
@@ -128,24 +126,23 @@ export class PaymentService {
           accountType: cashOrBank,
           accountGroup: cashOrBank.group,
           debit: 0,
-          credit: baseAmount,
+          credit: dto.amount,
           description: `${cashOrBank.name} payment`,
           accountId: dto.id,
         }),
 
-        // Credit GST Input (Receivable)
-        queryRunner.manager.create(AccountTransactionDetail, {
-          transaction: savedTransaction,
-          accountType: gstInput,
-          accountGroup: gstInput.group,
-          debit: 0,
-          credit: gstAmount,
-          description: 'GST Input (Receivable)',
-          accountId: dto.id,
+        // // Credit GST Input (Receivable)
+        // queryRunner.manager.create(AccountTransactionDetail, {
+        //   transaction: savedTransaction,
+        //   accountType: gstInput,
+        //   accountGroup: gstInput.group,
+        //   debit: 0,
+        //   credit: gstAmount,
+        //   description: 'GST Input (Receivable)',
+        //   accountId: dto.id,
 
-        }),
+        // }),
       ];
-
       await queryRunner.manager.save(transactionDetails);
 
       // 7️⃣ Update Invoice Status if fully paid

@@ -13,6 +13,7 @@ import { AccountTransaction } from 'src/modules/public/general_transaction/accou
 import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
 import { Payment } from '../../payment/entities/payment.entity';
 import { PurchaseInvoiceDetail } from '../../purchaseinvoicedetails/entities/purchaseinvoicedetail.entity';
+import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/taxinvoice.entity';
 // import { TaxInvoice } from 'src/modules/taxation-compliance/taxinvoice/entities/taxinvoice.entity';
 export enum MaterialType {
   NEW = 'NEW',
@@ -28,11 +29,11 @@ export class PurchaseInvoice {
   @Column({ unique: true })
   invoiceNo: string;
 
-@Column({
-  type: 'enum',
-  enum: MaterialType,
-})
-materialTypes: MaterialType;
+  @Column({
+    type: 'enum',
+    enum: MaterialType,
+  })
+  materialTypes: MaterialType;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   freightCost: number;
@@ -58,7 +59,7 @@ materialTypes: MaterialType;
 
   @Column()
   supplierId: string;
-  
+
   @OneToMany(
     () => PurchaseInvoiceDetail,
     detail => detail.purchaseInvoice, // links to the property in PurchaseInvoiceDetail
@@ -97,8 +98,10 @@ materialTypes: MaterialType;
 
   @UpdateDateColumn()
   updatedAt: Date;
-
   @OneToMany(() => Payment, payment => payment.invoice)
   payments?: Payment[];
+
+  @OneToMany(() => TaxInvoice, (tax) => tax.purchaseInvoice)
+  taxInvoices: TaxInvoice[];
 }
 

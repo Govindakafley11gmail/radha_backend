@@ -106,8 +106,9 @@ export class UsersController {
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
         sameSite: 'lax',
       });
+      const data = { user, accessToken, refreshToken };
 
-      return responseService.success(user, 'Login successful', HttpStatus.OK);
+      return responseService.success(data, 'Login successful', HttpStatus.OK);
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),

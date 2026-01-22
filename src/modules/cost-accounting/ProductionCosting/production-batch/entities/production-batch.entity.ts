@@ -47,4 +47,8 @@ export class ProductionBatch {
 
   @OneToMany(() => ProductUnitCost, (unitCost) => unitCost.batch)
   productUnitCosts: ProductUnitCost[];
+
+  // Helper properties for cost calculations
+  machineCosts: any;
+  otherCosts: any;
 }

@@ -21,6 +21,7 @@ import { SalesRevenueModule } from './modules/sales-revenue/sales-revenue.module
 import { CostAccountingModule } from './modules/cost-accounting/cost-accounting.module';
 import { InventoryManagementModule } from './modules/inventory-management/inventory-management.module';
 import { ErpModule } from './modules/erp/erp.module';
+import { ReportsModule } from './modules/reports/reports.module';
 dotenv.config();
 
 @Module({
@@ -52,7 +53,8 @@ dotenv.config();
     SalesRevenueModule,
     CostAccountingModule,
     InventoryManagementModule,
-    ErpModule
+    ErpModule,
+    ReportsModule
     
   ],
   controllers: [AppController],
