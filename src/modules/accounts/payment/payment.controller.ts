@@ -39,6 +39,20 @@ export class PaymentController {
       );
     }
   }
+  @Get('/settled')
+  async paymentSetteled() {
+    try {
+      const payments = await this.paymentService.paymentSetteled();
+      return responseService.success(payments, 'Settled Payments fetched successfully', HttpStatus.OK);
+    }
+    catch (error) {
+      return responseService.error(
+        error instanceof Error ? error.message : String(error), 
+        'Failed to fetch settled payments',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
 
   @Get(':id')
   async findOne(@Param('id') id: string) {

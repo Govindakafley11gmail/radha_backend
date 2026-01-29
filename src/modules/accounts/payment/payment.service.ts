@@ -293,6 +293,83 @@ async findAll(params: any = {}) {
     totalPages: Math.ceil(total / limit),
   };
 }
+async paymentSetteled(params: any = {}) {
+  const {
+    referenceNumber,
+    paymentMode,
+    amountFrom,
+    amountTo,
+    dateFrom,
+    dateTo,
+    invoiceId,
+    page = 1,
+    limit = 10,
+  } = params;
+
+  const skip = (page - 1) * limit;
+
+  const query = this.dataSource
+    .getRepository(Payment)
+    .createQueryBuilder('payment')
+    .leftJoinAndSelect('payment.invoice', 'invoice')
+    .leftJoinAndSelect('payment.supplier', 'supplier')
+    .leftJoinAndSelect('payment.rawMaterialReceipt', 'rawMaterialReceipt')
+    // ✅ FORCE completed
+    .where('payment.status = :status', {
+      status: PaymentStatus.COMPLETED,
+    });
+
+  if (referenceNumber) {
+    query.andWhere('payment.referenceNumber ILIKE :ref', {
+      ref: `%${referenceNumber}%`,
+    });
+  }
+
+  if (paymentMode) {
+    const modes = Array.isArray(paymentMode) ? paymentMode : [paymentMode];
+    query.andWhere('payment.paymentMode IN (:...modes)', { modes });
+  }
+
+  if (amountFrom !== undefined || amountTo !== undefined) {
+    if (amountFrom !== undefined && amountTo !== undefined) {
+      query.andWhere('payment.amount BETWEEN :amountFrom AND :amountTo', {
+        amountFrom,
+        amountTo,
+      });
+    } else if (amountFrom !== undefined) {
+      query.andWhere('payment.amount >= :amountFrom', { amountFrom });
+    } else {
+      query.andWhere('payment.amount <= :amountTo', { amountTo });
+    }
+  }
+
+  if (dateFrom || dateTo) {
+    query.andWhere('payment.paymentDate BETWEEN :dateFrom AND :dateTo', {
+      dateFrom: dateFrom || '1900-01-01',
+      dateTo: dateTo || '9999-12-31',
+    });
+  }
+
+  if (invoiceId) {
+    query.andWhere('invoice.id = :invoiceId', { invoiceId });
+  }
+
+  query
+    .orderBy('payment.paymentDate', 'DESC')
+    .skip(skip)
+    .take(limit);
+
+  const [data, total] = await query.getManyAndCount();
+
+  return {
+    data,
+    total,
+    page,
+    limit,
+    totalPages: Math.ceil(total / limit),
+  };
+}
+
 
   async findOne(id: string): Promise<Payment> {
     const payment = await this.dataSource
