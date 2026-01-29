@@ -162,7 +162,6 @@ export class SalesInvoiceService {
           description: 'GST Output Payable',
         },
       ];
-
       const txnDetails = glLines.map(l =>
         qr.manager.create(AccountTransactionDetail, {
           transaction: savedTxn,
@@ -174,9 +173,7 @@ export class SalesInvoiceService {
           description: l.description,
         }),
       );
-
       await qr.manager.save(txnDetails);
-
       await qr.commitTransaction();
       return savedInvoice;
 

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
@@ -9,15 +10,15 @@ import { Response } from 'express';
 @Injectable()
 export class LedgerPDFService {
   async generatePDF(ledgerData: any, res: Response) {
-    const { ledger, dateRange, accounts, totals } = ledgerData;
-
+    const { ledger, dateRange, accounts, totals, openingBalance } = ledgerData;
+    // console.log('LedgerPDFService -> generatePDF -> ledgerData', ledgerData);
     const startDate = dateRange?.startDate ?? '-';
     const endDate = dateRange?.endDate ?? '-';
     const safeLedgerName = ledger.name?.replace(/[^a-z0-9]/gi, '_') ?? 'Ledger';
 
     // Calculate closing balance as last account balance
     const closingBalance =
-      accounts && accounts.length ? accounts[accounts.length - 1].balance : 0;
+     openingBalance+ accounts && accounts.length ? accounts[accounts.length - 1].balance : 0;
 
     const html = `
     <html>
@@ -46,7 +47,7 @@ export class LedgerPDFService {
         <table>
           <tr>
             <th>Date</th>
-            <th>Particular</th>
+            <th>Narration</th>
             <th>Debit</th>
             <th>Credit</th>
           </tr>
@@ -58,7 +59,7 @@ export class LedgerPDFService {
                     (e) => `
             <tr>
               <td class="center">${new Date(e.date).toLocaleDateString()}</td>
-              <td>${e.particular ?? '-'}</td>
+              <td>${e.particular?? '-'}</td>
               <td class="right">${Number(e.debit ?? 0).toFixed(2)}</td>
               <td class="right">${Number(e.credit ?? 0).toFixed(2)}</td>
             </tr>

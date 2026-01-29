@@ -25,8 +25,8 @@ export class PurchaseInvoiceDetail {
   @Column()
   productType: string;
 
-    @Column({ nullable: true })
-    productCode: string;
+  @Column({ nullable: true })
+  productCode: string;
 
   @Column({ nullable: true })
   size?: string;
@@ -40,8 +40,6 @@ export class PurchaseInvoiceDetail {
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
   total?: number;
 
-
-  @Column({nullable:true})
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
   taxAmount?: number;
 

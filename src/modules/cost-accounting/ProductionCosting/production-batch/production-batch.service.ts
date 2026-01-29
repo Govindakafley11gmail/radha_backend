@@ -52,12 +52,11 @@ export class ProductionBatchService {
     if (dto.rawMaterialCosts && dto.rawMaterialCosts.length > 0) {
       for (const item of dto.rawMaterialCosts) {
         const material = await this.materialRepository.findOne({
-          where: { id: item.rawMaterialId },
+          where: { id: item.rawMaterialId, is_deleted: false },
         });
         if (!material) {
           throw new NotFoundException(`Raw material with id ${item.rawMaterialId} not found`);
         }
-
         const cost = this.costRepository.create({
           batch: savedBatch,
           rawMaterial: material,

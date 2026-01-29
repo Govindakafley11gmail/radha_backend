@@ -94,6 +94,7 @@ const dispatchEntity = queryRunner.manager.create(Dispatch, {
     dispatchNo,   // ✅ required
 });
 
+
 // 4️ Save in the same transaction
 await queryRunner.manager.save(dispatchEntity);
       // 4️ Create invoice details
@@ -168,15 +169,16 @@ await queryRunner.manager.save(dispatchEntity);
           accountCode: 'INVENTORY',
           debit: materialCost,
           credit: 0,
-          description: 'Purchase / Inventory',
+          description: `Purchase / Inventory - ${createDto.description}`,
           groupId: accountMap['Inventory']?.groupId,
           accountTypeID: accountMap['Inventory']?.id,
         },
+        
         {
           accountCode: 'OTHER_CHARGES',
           debit: otherCharges,
           credit: 0,
-          description: 'Freight & Import Duty',
+          description: `Freight & Import Duty - ${createDto.description}`,
           groupId: accountMap['Freight & Import Duty']?.groupId,
           accountTypeID: accountMap['Freight & Import Duty']?.id,
         },
@@ -184,15 +186,16 @@ await queryRunner.manager.save(dispatchEntity);
           accountCode: 'GST_INPUT',
           debit: totalTax,
           credit: 0,
-          description: 'GST_INPUT',
+          description: `GST_INPUT - ${createDto.description}`,
           groupId: accountMap['GST Input']?.groupId,
           accountTypeID: accountMap['GST Input']?.id,
         },
+
         {
           accountCode: 'ACCOUNTS_PAYABLE',
           debit: 0,
           credit: finalCost,
-          description: 'Supplier Payable',
+          description: `Accounts Payable - ${createDto.description}`,
           groupId: accountMap['Accounts Payable']?.groupId,
           accountTypeID: accountMap['Accounts Payable']?.id,
         },
@@ -242,6 +245,8 @@ await queryRunner.manager.save(dispatchEntity);
     const query = this.purchaseInvoiceRepository
       .createQueryBuilder('invoice')
       .leftJoinAndSelect('invoice.supplier', 'supplier')
+            .leftJoinAndSelect('invoice.purchaseInvoiceDetails', 'details')
+
       .where('invoice.isDeleted = :isDeleted', { isDeleted: false });
 
     if (search?.invoiceNo) {

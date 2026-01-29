@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -17,6 +19,23 @@ export class LedgerReportService {
     endDate?: string,
   ) {
     // Build query
+       let openingBalance = 0;
+    if (startDate) {
+      const opening = await this.dataSource
+        .getRepository(AccountTransactionDetail)
+        .createQueryBuilder('d')
+        .innerJoin('d.transaction', 't')
+        .innerJoin('d.accountType', 'a')
+        .innerJoin('a.group', 'g')
+        .where('g.id = :accountGroupId', { accountGroupId })
+        .andWhere('d.isDeleted = false')
+        .andWhere('t.isDeleted = false')
+        .andWhere('t.transactionDate < :startDate', { startDate })
+        .select('SUM(d.debit) as debitSum, SUM(d.credit) as creditSum')
+        .getRawOne();
+
+      openingBalance = Number(opening?.debitSum ?? 0) - Number(opening?.creditSum ?? 0);
+    }
     const qb = this.dataSource
       .getRepository(AccountTransactionDetail)
       .createQueryBuilder('d')
@@ -43,7 +62,6 @@ export class LedgerReportService {
 
     // Execute query
     const transactions = await qb.getMany();
-    console.log('LedgerReportService -> generateLedgerReport -> transactions', transactions);
     // Handle empty transactions
     if (!transactions) {
       return {
@@ -66,25 +84,25 @@ export class LedgerReportService {
 
       return {
         date: t.transaction.transactionDate,
-        particular: t.transaction.description ?? '',
+        particular: t.description + (t.transaction.description ? ` - ${t.transaction.description}` : ''),
         debit,
         credit,
         balance: runningBalance,
       };
+
     });
     // Calculate totals
     const totalDebit = accounts.reduce((sum, a) => sum + a.debit, 0);
     const totalCredit = accounts.reduce((sum, a) => sum + a.credit, 0);
-    console.log('LedgerReportService -> generateLedgerReport -> totalDebit, totalCredit', totalDebit, totalCredit);
     // Build report
     const data = {
       reportType: 'LEDGER_REPORT',
       generatedAt: new Date(),
       ledger: {
         id: accountTypeId,
-        name: transactions[0].accountType?.name ?? 'Unknown',
-        group: transactions[0].accountType?.group?.name ?? null,
-        openingBalance: 0, // You can implement opening balance logic here
+        name: transactions.map((t) => t.accountType?.name ?? 'Unknown')[0],
+        group: transactions.map((t) => t.accountType?.group?.name ?? null)[0],
+        openingBalance: openingBalance, // You can implement opening balance logic here
       },
       dateRange: { startDate: startDate ?? null, endDate: endDate ?? null },
       totals: { debit: totalDebit, credit: totalCredit },

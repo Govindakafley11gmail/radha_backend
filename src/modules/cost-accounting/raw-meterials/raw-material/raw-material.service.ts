@@ -18,25 +18,51 @@ export class RawMaterialService {
   }
 
   async findAll(): Promise<RawMaterial[]> {
-    return await this.rawMaterialRepository.find();
+    return await this.rawMaterialRepository.find({ where: { is_deleted: false } });
   }
 
   async findOne(id: string): Promise<RawMaterial> {
-    const rawMaterial = await this.rawMaterialRepository.findOne({ where: { id: id.toString() } });
+    const rawMaterial = await this.rawMaterialRepository.findOne({ where: { id: id.toString(), is_deleted: false } });
     if (!rawMaterial) {
       throw new NotFoundException(`RawMaterial with ID ${id} not found`);
     }
     return rawMaterial;
   }
 
-  async update(id: string, updateRawMaterialDto: UpdateRawMaterialDto): Promise<RawMaterial> {
-    const rawMaterial = await this.findOne(id);
-    Object.assign(rawMaterial, updateRawMaterialDto);
-    return await this.rawMaterialRepository.save(rawMaterial);
+async update(
+  id: string,
+  updateRawMaterialDto: UpdateRawMaterialDto,
+): Promise<RawMaterial> {
+
+  // 1️⃣ Find existing active record
+  const existing = await this.rawMaterialRepository.findOne({
+    where: { id, is_deleted: false },
+  });
+
+  if (!existing) {
+    throw new NotFoundException(`RawMaterial with ID ${id} not found`);
   }
+
+  // 2️⃣ Soft delete old record
+  existing.is_deleted = true;
+  await this.rawMaterialRepository.save(existing);
+
+  // 3️⃣ Create new version
+  const newRawMaterial = this.rawMaterialRepository.create({
+    ...existing,
+    ...updateRawMaterialDto,
+    id,          // VERY IMPORTANT → forces INSERT
+    is_deleted: false,
+    // parentId: existing.id ?? existing.id,
+  });
+
+  return await this.rawMaterialRepository.save(newRawMaterial);
+}
+
 
   async remove(id: string): Promise<void> {
     const rawMaterial = await this.findOne(id);
-    await this.rawMaterialRepository.remove(rawMaterial);
+    rawMaterial.is_deleted = true;
+    await this.rawMaterialRepository.save(rawMaterial);
   }
 }

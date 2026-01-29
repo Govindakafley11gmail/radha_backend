@@ -45,8 +45,26 @@ export class CreatePurchaseInvoiceDetailDto {
   @IsOptional()
   @IsNumber()
   freightCost?: number;
+
 }
 
+export class PurchaseInvoiceReportDto {
+  @IsOptional()
+  @IsString()
+  invoiceNo?: string;
+  @IsOptional()
+  @IsString()
+  supplierName?: string
+  @IsOptional()
+  @IsString()
+  fromDate?: string
+  @IsOptional()
+  @IsString()
+  toDate?: string
+  @IsOptional()
+  @IsString()
+  status?: string
+}
 export class CreatePurchaseInvoiceDto {
   @IsString()
   invoiceNo: string;

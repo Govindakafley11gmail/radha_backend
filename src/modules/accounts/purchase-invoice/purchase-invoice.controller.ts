@@ -14,7 +14,7 @@ import {
   Req,
 } from '@nestjs/common';
 import { PurchaseInvoiceService } from './purchase-invoice.service';
-import { CreatePurchaseInvoiceDto } from './dto/create-purchase-invoice.dto';
+import { CreatePurchaseInvoiceDto, PurchaseInvoiceReportDto } from './dto/create-purchase-invoice.dto';
 import { UpdatePurchaseInvoiceDto } from './dto/update-purchase-invoice.dto';
 import { PurchaseInvoice } from './entities/purchase-invoice.entity';
 import { ResponseService } from 'src/common/response/response';
@@ -65,9 +65,13 @@ export class PurchaseInvoiceController {
         totalAmount: body.totalAmount ? Number(body.totalAmount) : undefined,
         GStTaxAmount: body.GStTaxAmount ? Number(body.GStTaxAmount) : undefined,
         description: body.description,
+        freightCost: body.freightCost ? Number(body.freightCost) : undefined,
+        importDuty: body.importDuty ? Number(body.importDuty) : undefined,
+        scrapQuantity: body.scrapQuantity ? Number(body.scrapQuantity) : undefined,
         status: body.status,
         details: body.details,
       };
+
 
       const updatedInvoice = await this.purchaseInvoiceService.update(id, updateDto);
       return responseService.success(updatedInvoice, 'Purchase invoice updated successfully', HttpStatus.OK);
@@ -79,7 +83,26 @@ export class PurchaseInvoiceController {
       );
     }
   }
-
+ @Post('/report')
+  async fetchData( @Body() createPurchaseInvoiceDto: PurchaseInvoiceReportDto
+    // @Query('invoiceNo') invoiceNo?: string,
+    // @Query('supplierName') supplierName?: string,
+    // @Query('fromDate') fromDate?: string,
+    // @Query('toDate') toDate?: string,
+    // @Query('status') status?: string,
+  ) {
+    try {
+      const { invoiceNo, supplierName, fromDate, toDate, status } = createPurchaseInvoiceDto;
+      const invoices = await this.purchaseInvoiceService.findAll({invoiceNo, supplierName, fromDate, toDate, status});
+      return responseService.success(invoices, 'Purchase invoices fetched successfully', HttpStatus.OK);
+    } catch (error) {
+      return responseService.error(
+        error instanceof Error ? error.message : String(error),
+        'Failed to fetch purchase invoices',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
   // ----------------------
   // GET ALL PURCHASE INVOICES
   // ----------------------
@@ -102,6 +125,7 @@ export class PurchaseInvoiceController {
       );
     }
   }
+ 
 
   // ----------------------
   // GET ONE PURCHASE INVOICE

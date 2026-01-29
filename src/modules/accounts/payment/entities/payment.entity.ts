@@ -39,8 +39,8 @@ export class Payment {
     @Column({ type: 'date' })
     paymentDate: string;
 
-    @Column()
-    paymentMode: string;;
+    @Column({nullable: true})
+    paymentMode: string;
 
     @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
     status: PaymentStatus;
