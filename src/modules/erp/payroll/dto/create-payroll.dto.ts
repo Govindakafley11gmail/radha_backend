@@ -1,58 +1,85 @@
-import { IsArray, IsNumber, Min, ValidateNested, IsDateString, IsString } from 'class-validator';
+import {
+  IsArray,
+  IsDateString,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateNested,
+  IsInt,
+} from 'class-validator';
 import { Type } from 'class-transformer';
 
-class PayrollEmployee {
-    @IsNumber()
-    employeeId: number;
+/* ---------------- Employee Payroll DTO ---------------- */
 
+export class PayrollEmployeeDto {
+  @IsInt()
+  employeeId: number;
 
-    @IsNumber()
-    @Min(0)
-    basicSalary: number;
+  @IsNumber()
+  @Min(0)
+  basicSalary: number;
 
-    @IsNumber()
-    @Min(0)
-    tds: number;
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  tds?: number;
 
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  medical?: number;
 
-    @IsNumber()
-    @Min(0)
-    medical: number;
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  housingAllowance?: number;
 
-    @IsNumber()
-    @Min(0)
-    otherAllowance: number;
-    @IsNumber()
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  otherAllowance?: number;
 
-    providentInterest
-    @IsNumber()
-    @Min(0)
-    housingAllowance: number;
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  providentInterest?: number;
 }
 
+/* ---------------- Create Payroll DTO ---------------- */
+
 export class CreatePayrollDto {
-    @IsArray()
-    @ValidateNested({ each: true })
-    @Type(() => PayrollEmployee)
-    employees: PayrollEmployee[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => PayrollEmployeeDto)
+  employees: PayrollEmployeeDto[];
 
-    @IsDateString()
-    payrollDate: string;
+  @IsDateString()
+  payrollDate: string;
 
-    @IsString()
-    month: string;
+  @IsString()
+  month: string;
 
-    @IsString()
-    year: string;
+  @IsInt()
+  year: number;
 
-    @IsNumber()
-    totalAmount: number;
+  // ⚠️ Recommended: compute these in service, not from client
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  totalAmount?: number;
 
-    @IsNumber()
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  totalDeduction?: number;
 
-    totalDecuction: number;
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  totalAllowance?: number;
 
-    @IsNumber()
-    totalAllowance: number;
-
+  @IsString()
+  @IsOptional()
+  remarks?: string;
 }

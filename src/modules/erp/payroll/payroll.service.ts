@@ -47,9 +47,14 @@ export class PayrollService {
 
     try {
       const payroll = queryRunner.manager.create(Payroll, {
+        month:dto.month,
+        year: dto.year,
+        totalAmount: dto.totalAmount,
+        totalAllowance: dto.totalAllowance,
+        totalDeduction: dto.totalDeduction,
         payrollDate: new Date(dto.payrollDate),
         status: PayrollStatus.DRAFT,
-        totalAmount: 0,
+        remarks: dto.remarks
       });
 
       const savedPayroll = await queryRunner.manager.save(payroll);
@@ -66,7 +71,6 @@ export class PayrollService {
 
         const netSalary =
           Number(emp.basicSalary) + allowances - deductions;
-
         const detail = queryRunner.manager.create(PayrollDetail, {
           payroll: savedPayroll,
           payrollId: savedPayroll.id,
@@ -80,11 +84,12 @@ export class PayrollService {
           allowances: allowances,
           providentFund,
           deductions: deductions,
-                    netSalary,
+          netSalary,
         });
 
         details.push(detail);
       }
+        console.log('Net Salary for employee', details);
 
       await queryRunner.manager.save(details);
 
