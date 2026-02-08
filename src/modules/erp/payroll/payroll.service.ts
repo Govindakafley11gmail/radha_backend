@@ -74,9 +74,13 @@ export class PayrollService {
           basicSalary: emp.basicSalary,
           housingAllowance: emp.housingAllowance,
           otherAllowance: emp.otherAllowance,
+          tds: emp.tds,
+          providentInterest: emp.providentInterest,
+          medical: emp.medical,
+          allowances: allowances,
           providentFund,
-          deductions,
-          netSalary,
+          deductions: deductions,
+                    netSalary,
         });
 
         details.push(detail);

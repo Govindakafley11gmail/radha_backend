@@ -38,6 +38,15 @@ export class PayrollDetail {
     @Column('decimal', { precision: 10, scale: 2 })
     netSalary: number;
 
+    @Column('decimal', { precision: 5, scale: 2, default: 0 })
+    tds: number;
+
+    @Column('decimal', { precision: 5, scale: 2, default: 0 })
+    medical: number;
+
+    @Column('decimal', { precision: 5, scale: 2, default: 0 })
+    providentInterest: number;
+
     @ManyToOne(() => User, { eager: true })
     @JoinColumn({ name: 'employeeId' })
     employee: User;

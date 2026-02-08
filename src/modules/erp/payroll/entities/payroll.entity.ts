@@ -37,7 +37,17 @@ export class Payroll {
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
   totalAmount: number;
 
+  @Column({ type: 'integer', nullable: true })
+  month: number;
+
+  @Column({ type: 'integer', nullable: true })
+  year: number;
+
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  totalDeduction: number;
   
+  @Column('decimal', { precision: 15, scale: 2, default: 0 })
+  totalAllowance: number;
 
   @OneToMany(() => PayrollDetail, detail => detail.payroll, { cascade: true })
   details: PayrollDetail[];
