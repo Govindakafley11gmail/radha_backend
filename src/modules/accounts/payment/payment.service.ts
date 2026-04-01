@@ -104,7 +104,6 @@ export class PaymentService {
         accountId: dto.id,
       });
       const savedTransaction = await queryRunner.manager.save(transaction);
-
       // 5️⃣ Calculate GST & Base Amount
 
       // 6️⃣ Create Transaction Details (Double Entry)

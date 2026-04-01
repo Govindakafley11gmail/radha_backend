@@ -89,8 +89,6 @@ export class PayrollService {
 
         details.push(detail);
       }
-        console.log('Net Salary for employee', details);
-
       await queryRunner.manager.save(details);
 
       savedPayroll.totalAmount = details.reduce(

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import {  Like, Repository } from 'typeorm';
 import { Supplier } from './entities/supplier.entity';
 import { CreateSupplierDto } from './dto/create-supplier.dto';
 import { UpdateSupplierDto } from './dto/update-supplier.dto';
@@ -30,6 +30,14 @@ export class SupplierService {
       relations: ['purchaseInvoices', 'rawMaterialReceipts'],
     });
   }
+ async findAllWithCidNo(cid: string): Promise<Supplier[]> {
+  return await this.supplierRepository.find({
+    where: {
+      isDeleted: false,
+      cidNo: Like(`%${cid}%`),
+    },
+  });
+}
 
   // Find one supplier by ID
   async findOne(id: string): Promise<Supplier> {

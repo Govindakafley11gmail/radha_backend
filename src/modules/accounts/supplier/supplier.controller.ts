@@ -70,7 +70,23 @@ export class SupplierController {
       );
     }
   }
-
+@Get('with-cid/:cid')
+async findAllWithCidNo(@Param('cid') cid: string) {
+  try {
+    const suppliers = await this.supplierService.findAllWithCidNo(cid);
+    return responseService.success(
+      suppliers,
+      'Suppliers with CID fetched successfully',
+      HttpStatus.OK,
+    );
+  } catch (error) {
+    return responseService.error(
+      error instanceof Error ? error.message : String(error),
+      'Failed to fetch suppliers with CID',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
   // ================= FIND ALL =================
   @Get()
   async findAll() {
@@ -170,7 +186,7 @@ export class SupplierController {
   }
 
   // ================= DOWNLOAD MOU =================
-@Get('download/:id')
+@Get('download-mou/:id')
 async downloadMou(
   @Param('id') id: string,
   @Res() res: Response,
@@ -181,7 +197,7 @@ async downloadMou(
     return res.status(404).json({ message: 'No MOU file uploaded for this supplier' });
   }
 
-  const filePath = join(process.cwd(), supplier.mouFile);
+  const filePath = join(process.cwd(), 'uploads', 'mou', supplier.mouFile);
 
   if (!existsSync(filePath)) {
     return res.status(404).json({ message: 'File not found on server' });

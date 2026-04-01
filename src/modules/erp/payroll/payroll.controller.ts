@@ -48,7 +48,7 @@ export class PayrollController {
   }
 
   // Workflow endpoints
-  @Patch(':id/submit')
+  @Patch('approval/:id')
   async submit(@Param('id') id: string) {
     try {
       const payroll = await this.payrollService.submitForApproval(id);
@@ -58,7 +58,7 @@ export class PayrollController {
     }
   }
 
-  @Patch(':id/approve')
+  @Patch('approve/:id')
   async approve(@Param('id') id: string, @Req() req: AuthRequest) {
     try {
       const payroll = await this.payrollService.approve(id, req.user.id);
