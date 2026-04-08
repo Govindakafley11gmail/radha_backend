@@ -1,11 +1,24 @@
 import { 
-  Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus 
+  Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, 
+  Req
 } from '@nestjs/common';
 import { AssetService } from './asset.service';
 import { CreateAssetDto } from './dto/create-asset.dto';
 import { UpdateAssetDto } from './dto/update-asset.dto';
 import { ResponseService } from 'src/common/response/response';
-
+interface UserRole {
+  id: number;
+  name: string;
+  description: string;
+  createdAt: string;
+  updatedAt: string;
+}
+interface AuthRequest {
+  user: {
+    id: string;
+    role: UserRole;
+  };
+}
 @Controller('asset')
 export class AssetController {
   constructor(
@@ -66,6 +79,31 @@ export class AssetController {
       );
     }
   }
+@Get('approval')
+async getApprovalAssert(
+  @Req() req: AuthRequest,
+): Promise<any> {
+  try {
+    const roles = req.user.role as unknown as UserRole[];
+
+    const response = await this.assetService.fetchApprovalAssert(
+      roles,
+    );
+
+    return this.responseService.success(
+      response,
+      'Asset retrieved successfully',
+      HttpStatus.OK,
+    );
+  } catch (error: any) {
+    return this.responseService.error(
+      error instanceof Error ? error.message : String(error),
+      'Failed to retrieve asset',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+}
+
 
   @Patch(':id')
   async update(@Param('id') id: string, @Body() updateAssetDto: UpdateAssetDto) {
@@ -86,11 +124,15 @@ export class AssetController {
   }
   @Patch('approve/:id')
   async approveAsset(
+      @Req() req: AuthRequest,
+
     @Param('id') id: string,
     @Body() updateAssetDto: UpdateAssetDto,
   ) {
     try {
-      const asset = await this.assetService.approveAsset(id, updateAssetDto);
+          const roles = req.user.role as unknown as UserRole[];
+
+      const asset = await this.assetService.approveAsset(id, updateAssetDto,roles);
       return this.responseService.success(
         asset,
         'Asset approved successfully',

@@ -219,7 +219,7 @@ async rejectPurchaseInvoice(
       message: 'Purchase invoice rejected successfully',
       data: result,
     });
-  } catch (error) {
+  } catch (error:any) {
     return res.status(HttpStatus.BAD_REQUEST).json({
       success: false,
       message: error.message,

@@ -1,4 +1,6 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+/* eslint-disable no-constant-condition */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import {  Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreateAssetDto } from './dto/create-asset.dto';
@@ -22,7 +24,7 @@ export class AssetService {
     private readonly assetRepo: Repository<FixedAsset>,
     private readonly dataSource: DataSource,
     private readonly accountPostingService: AccountpostingService,
-  ) {}
+  ) { }
 
   /** ✅ Create asset with optional paid/credit accounting */
   async create(dto: CreateAssetDto): Promise<FixedAsset> {
@@ -32,39 +34,7 @@ export class AssetService {
       const savedAsset = await manager.save(asset);
 
       // 2️⃣ Prepare accounting entries
-      const costEntries: CostEntry[] = [
-        {
-          accountId: asset.id, // Dr Fixed Asset
-          debit: dto.purchaseCost-dto.gst,
-          credit: 0,
-          accountTypeName: 'Assets',
-          referenceId: savedAsset.id,
-        },
-         {
-          accountId: asset.id, // Dr Fixed Asset
-          debit: dto.gst,
-          credit: 0,
-          accountTypeName: 'GST Input',
-          referenceId: savedAsset.id,
-        },
-        {
-          accountId: asset.id, // Cr Cash/Bank or Payable
-          debit: 0,
-          credit: dto.purchaseCost,
-          accountTypeName:  'Account Payable',
-          referenceId: savedAsset.id,
-        },
-      ].filter(e => e.debit > 0 || e.credit > 0);
 
-      // 3️⃣ Post to accounting
-      if (costEntries.length > 0) {
-        await this.accountPostingService.postCosts(
-          savedAsset.id,
-          'FIXED_ASSET_PURCHASE',
-          `Fixed asset purchase - ${dto.assetName}`,
-          costEntries,
-        );
-      }
 
       return savedAsset;
     });
@@ -72,9 +42,32 @@ export class AssetService {
 
   /** ✅ Get all assets (exclude soft-deleted) */
   async findAll(): Promise<FixedAsset[]> {
+
+
     return this.assetRepo.find({
+
       where: { isDeleted: false },
       order: { createdAt: 'DESC' },
+    });
+  }
+
+  async fetchApprovalAssert(roles: any[]): Promise<FixedAsset[]> {
+    const isAdmin = roles.some(r => r.name === 'Head');
+    const isManager = roles.some(r => r.name === 'Manager');
+
+    let statusFilter: string | undefined;
+
+    if (isAdmin) {
+      statusFilter = 'Verified';
+    } else if (isManager) {
+      statusFilter = 'Pending';
+    }
+
+    return this.assetRepo.find({
+      where: {
+        isDeleted: false,
+        ...(statusFilter && { status: statusFilter }),
+      },
     });
   }
 
@@ -96,29 +89,84 @@ export class AssetService {
 
   /** ✅ Approve asset and optionally create payment */
   async approveAsset(
-  id: string, dto: UpdateAssetDto
+    id: string,
+    dto: UpdateAssetDto,
+    roles: any[]
   ): Promise<FixedAsset> {
     return await this.dataSource.transaction(async manager => {
+
       const asset = await manager.findOne(FixedAsset, {
         where: { id, isDeleted: false },
       });
+
       if (!asset) throw new NotFoundException('Asset not found');
 
-      // 1️⃣ Mark as approved
-      dto.status = 'Approved';
+      const isHead = roles.some(r => r.name === 'Head');
+      const isManager = roles.some(r => r.name === 'Manager');
+
+      if (isHead) {
+        asset.status = 'Verified';
+      } else if (isManager) {
+        asset.status = 'Approved';
+      }
+
+      Object.assign(asset, dto);
+
       const savedAsset = await manager.save(asset);
-      // 2️⃣ Create payment if paid
-      if (dto.status=='Approved') {
+
+      if (savedAsset.status === 'Approved') {
         const payment = manager.create(AssetPayment, {
           asset: savedAsset,
           amount: savedAsset.purchaseCost,
-          status: dto.status? 'Approved' : 'Pending',
+          status: 'Approved',
           paymentDate: new Date().toISOString().split('T')[0],
-          accountId: savedAsset.id,
+          accountId: savedAsset, // ✅ correct account mapping
           description: `Payment for approved asset ${savedAsset.assetName}`,
         });
+
         await manager.save(payment);
+
+        // ===============================
+        // ✅ Accounting Entries
+        // ===============================
+        const costEntries: CostEntry[] = [
+          {
+            accountId: savedAsset.id, // 🔥 Fixed Asset Account
+            debit: savedAsset.purchaseCost - savedAsset.gst,
+            credit: 0,
+            accountTypeName: 'Assets',
+            referenceId: savedAsset.id,
+          },
+          {
+            accountId: savedAsset.id, // 🔥 GST Input Account
+            debit: savedAsset.gst,
+            credit: 0,
+            accountTypeName: 'GST Input',
+            referenceId: savedAsset.id,
+          },
+          {
+            accountId: savedAsset.id, // 🔥 Payable / Bank
+            debit: 0,
+            credit: savedAsset.purchaseCost,
+            accountTypeName: 'Account Payable',
+            referenceId: savedAsset.id,
+          },
+        ].filter(e => e.debit > 0 || e.credit > 0);
+
+        // ===============================
+        // ✅ Post Accounting
+        // ===============================
+        if (costEntries.length > 0) {
+          await this.accountPostingService.postCosts(
+            savedAsset.id,
+            'FIXED_ASSET_PURCHASE',
+            `Fixed asset purchase - ${savedAsset.assetName}`,
+            costEntries,
+          );
+        }
       }
+
+
       return savedAsset;
     });
   }

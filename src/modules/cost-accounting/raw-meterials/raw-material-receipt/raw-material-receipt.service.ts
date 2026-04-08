@@ -286,6 +286,7 @@ export class RawMaterialReceiptService {
       await queryRunner.release();
     }
   }
+  
   async generateReceipt(id: string, res: any): Promise<any> {
     const receipt = await this.findOne(id);
     const rawMaterialArray = [
