@@ -8,34 +8,41 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 import { PurchaseInvoice } from '../../purchase-invoice/entities/purchase-invoice.entity';
+import { RawMaterial } from 'src/modules/cost-accounting/raw-meterials/raw-material/entities/raw-material.entity';
 
 @Entity({ name: 'purchase_invoice_details' })
 export class PurchaseInvoiceDetail {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   @ManyToOne(() => PurchaseInvoice, (invoice) => invoice.details, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'purchase_invoice_id' })
-  purchaseInvoice: PurchaseInvoice;
+  purchaseInvoice!: PurchaseInvoice;
 
-  @Column()
-  productId: string;
+  //   @ManyToOne(() => RawMaterial)
+  // @JoinColumn({ name: 'raw_material_id' })
+  // rawMaterial!: RawMaterial;
 
+  @ManyToOne(() => RawMaterial)
+  @JoinColumn({ name: 'productType' }) // or raw_material_id
+  rawMaterial!: RawMaterial;
+
+  
   @Column()
-  productType: string;
+  productType!: string;
 
   @Column({ nullable: true })
-  productCode: string;
+  productCode!: string;
 
   @Column({ nullable: true })
   size?: string;
 
   @Column('decimal', { precision: 12, scale: 2 })
-  price: number;
+  price!: number;
 
   @Column('decimal', { precision: 12, scale: 2 })
-  quantity: number;
+  quantity!: number;
 
   @Column('decimal', { precision: 12, scale: 2, nullable: true })
   total?: number;
@@ -44,11 +51,11 @@ export class PurchaseInvoiceDetail {
   taxAmount?: number;
 
   @Column({ default: false })
-  isDeleted: boolean;
+  isDeleted!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

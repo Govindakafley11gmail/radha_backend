@@ -30,12 +30,32 @@ export class SupplierService {
       relations: ['purchaseInvoices', 'rawMaterialReceipts'],
     });
   }
- async findAllWithCidNo(cid: string): Promise<Supplier[]> {
+
+async findAllWithSearch(search: string): Promise<Supplier[]> {
+  console.log("search",search)
+ if (!search) {
+  console.log("rdtfgyhuji",search)
+  return [];
+}
   return await this.supplierRepository.find({
-    where: {
-      isDeleted: false,
-      cidNo: Like(`%${cid}%`),
-    },
+    where: [
+      {
+        isDeleted: false,
+        cidNo: search,
+      },
+      {
+        isDeleted: false,
+        name: Like(`%${search}%`),
+      },
+      {
+        isDeleted: false,
+        email: Like(`%${search}%`),
+      },
+      {
+        isDeleted: false,
+        phone_no: Like(`%${search}%`),
+      },
+    ],
   });
 }
 

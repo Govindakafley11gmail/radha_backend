@@ -13,6 +13,7 @@ import {
   UseInterceptors,
   HttpStatus,
   Res,
+  Query,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -70,19 +71,20 @@ export class SupplierController {
       );
     }
   }
-@Get('with-cid/:cid')
-async findAllWithCidNo(@Param('cid') cid: string) {
+@Get('/search_supplier')
+async searchSuppliers(@Query('search') search: string) {
   try {
-    const suppliers = await this.supplierService.findAllWithCidNo(cid);
+    const suppliers = await this.supplierService.findAllWithSearch(search || "");
+
     return responseService.success(
       suppliers,
-      'Suppliers with CID fetched successfully',
+      'Suppliers searched successfully',
       HttpStatus.OK,
     );
   } catch (error) {
     return responseService.error(
       error instanceof Error ? error.message : String(error),
-      'Failed to fetch suppliers with CID',
+      'Failed to search suppliers',
       HttpStatus.BAD_REQUEST,
     );
   }

@@ -9,8 +9,7 @@ import {
 import { Type } from 'class-transformer';
 
 export class CreatePurchaseInvoiceDetailDto {
-  @IsString()
-  productId: string;
+
 
   @IsString()
   productType: string;
@@ -69,8 +68,9 @@ export class CreatePurchaseInvoiceDto {
   @IsString()
   invoiceNo: string;
 
+  @IsOptional()
   @IsString()
-  supplierId: string;
+  supplierId!: string;
 
   @IsDate()
   @Type(() => Date)

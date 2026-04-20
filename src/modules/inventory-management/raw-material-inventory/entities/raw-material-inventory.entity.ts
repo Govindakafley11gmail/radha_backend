@@ -52,13 +52,6 @@ export class RawMaterialInventory {
     })
     valuation_method: ValuationMethod;
 
-    @Column({
-        type: 'numeric',
-        precision: 12,
-        scale: 3,
-        default: 0,
-    })
-    reorder_level: number;
 
 
     @OneToMany(() => RawMaterialReceipt, (receipt) => receipt.inventory)

@@ -16,6 +16,10 @@ import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { Payment } from 'src/modules/accounts/payment/entities/payment.entity';
+import { RawMaterialInventory, ValuationMethod } from 'src/modules/inventory-management/raw-material-inventory/entities/raw-material-inventory.entity';
+import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
+import { AccountTransaction } from 'src/modules/public/general_transaction/account_transaction/entities/account_transaction.entity';
+import { AccountType } from 'src/modules/master/account_types/entities/account_type.entity';
 @Injectable()
 export class RawMaterialReceiptService {
   constructor(
@@ -23,6 +27,8 @@ export class RawMaterialReceiptService {
     private readonly receiptRepository: Repository<RawMaterialReceipt>,
     private readonly dataSource: DataSource,
     private readonly pdfService: ReceiptPDFService,
+    @InjectRepository(AccountType)
+    private readonly accountTypeRepository: Repository<AccountType>,
 
   ) { }
 
@@ -82,26 +88,13 @@ export class RawMaterialReceiptService {
         total_cost: createDto.total_cost,
         accountNo: createDto.accountNo,
         receipt_no: dispatchNo,
-        receivedDate: createDto.received_date ? new Date(createDto.received_date) : new Date(),
+        received_date: new Date(),
         documentPath: documentPath ?? undefined, // <-- make sure null is converted to undefined
         status: 'Processed'
       });
       const savedReceipt = await queryRunner.manager.save(receipt);
-      console.log(createDto.supplier_id)
-      // Optionally create a payment entry
-      // const payment = queryRunner.manager.create(Payment, {
-      //   invoice: purchaseInvoice,
-      //   amount: createDto.total_cost,
-      //   paymentDate: new Date().toISOString().split('T')[0],
-      //   status: PaymentStatus.PENDING,
-      //   accountNo: createDto.accountNo,
-      //   paymentMode: createDto.paymentMode,
-      //   description: createDto.payment_remarks,
-      //   documentPath: documentPath ?? undefined,
-      //   supplierId: createDto.supplier_id,
-      //   rawMaterilReceiptId: savedReceipt.id
-      // });
-      // await queryRunner.manager.save(payment);
+      purchaseInvoice.status = 'Processed'
+      await queryRunner.manager.save(purchaseInvoice);
 
       await queryRunner.commitTransaction();
       return savedReceipt;
@@ -149,7 +142,9 @@ export class RawMaterialReceiptService {
 
     // ---------------- ROLE-BASED FILTER ----------------
     if (roles.some(r => r.name === 'Admin')) {
-      // Admin: fetch all, no status filter
+      qb.andWhere('receipt.status IN (:...status)', {
+        status: ['Processed', 'Verified'],
+      });
     } else if (roles.some(r => r.name === 'Manager')) {
       // Manager: only receipts with status 'Processed'
       qb.andWhere('receipt.status = :status', { status: 'Processed' });
@@ -158,7 +153,6 @@ export class RawMaterialReceiptService {
       qb.andWhere('receipt.status = :status', { status: 'Verified' });
     } else {
       qb.andWhere('1=0'); // always false
-
     }
 
     // ---------------- SEARCH FILTER ----------------
@@ -191,61 +185,223 @@ export class RawMaterialReceiptService {
   }
 
   // ================= UPDATE =================
-  async update(
-    id: string,
-    roles: any[],
-  ): Promise<RawMaterialReceipt> {
+  async update(id: string, roles: any[]): Promise<RawMaterialReceipt> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
     await queryRunner.startTransaction();
 
     try {
-      // 1️⃣ Find the existing receipt
-      const receipt = await this.findOne(id);
+      // 1️⃣ Get existing receipt (BEFORE update)
+      const existingReceipt = await this.findOne(id);
+      const previousStatus = existingReceipt.status;
 
-      // 2️⃣ Determine role-based status
+      // 2️⃣ Role-based status update
       const isAdmin = roles.some(r => r.name === 'Admin');
+      const isHead = roles.some(r => r.name === 'Head');
       const isManager = roles.some(r => r.name === 'Manager');
 
-      if (isAdmin) {
-        receipt.status = 'Approved';
+      if (isAdmin || isHead) {
+        existingReceipt.status = 'Approved';
       } else if (isManager) {
-        receipt.status = 'Verified';
+        existingReceipt.status = 'Verified';
       }
+      // 3️⃣ Save updated receipt
+      const savedReceipt = await queryRunner.manager.save(existingReceipt);
 
-      // 3️⃣ Merge other updates from DTO (excluding status)
-      Object.assign(receipt);
+      // 4️⃣ Payment (ONLY when newly approved)
+      if (previousStatus !== 'Approved' && existingReceipt.status === 'Approved') {
 
-      // 4️⃣ Save the receipt first
-      const savedReceipt = await queryRunner.manager.save(receipt);
-
-      // 5️⃣ If Admin approved, create a Payment entry
-      if (receipt.status === 'Approved') {
-        const receipt = await this.receiptRepository.findOne({
+        const receiptWithRelations = await queryRunner.manager.findOne(RawMaterialReceipt, {
           where: { id },
-          relations: ["supplier","purchaseInvoice"],
+          relations: ["supplier", "purchaseInvoice", "purchaseInvoice.purchaseInvoiceDetails"],
         });
-        if (!receipt) {
+
+        if (!receiptWithRelations) {
           throw new NotFoundException('Raw material receipt not found');
-        }        // Make sure you import Payment and PaymentStatus at the top
-        console.log(receipt)
+        }
+
+        // 👉 Create payment
         const payment = queryRunner.manager.create(Payment, {
-          rawMaterialReceipt: receipt,
-          invoice: receipt.purchaseInvoice,
-          amount: (receipt.total_cost) ?? 0,
+          rawMaterialReceipt: receiptWithRelations,
+          invoice: receiptWithRelations.purchaseInvoice,
+          amount: receiptWithRelations.total_cost ?? 0,
           paymentDate: new Date().toISOString().split('T')[0],
-          // status: 'Pending',
-          accountNo: receipt.receipt_no,
-          paymentMode: receipt.paymentMode,
-          description: receipt.payment_remarks,
-          documentPath: receipt.documentPath ?? undefined,
-          supplierId: receipt.supplier.supplier_id,
+          accountNo: receiptWithRelations.receipt_no,
+          paymentMode: receiptWithRelations.paymentMode,
+          description: receiptWithRelations.payment_remarks,
+          documentPath: receiptWithRelations.documentPath ?? undefined,
+          supplierId: receiptWithRelations.supplier.supplier_id,
         });
+
         await queryRunner.manager.save(payment);
+
+        // 👉 Inventory update (ONLY ON APPROVAL)
+        for (const item of receiptWithRelations.purchaseInvoice.purchaseInvoiceDetails || []) {
+
+          const rawMaterialId = item.productType;
+          const qty = Number(item.quantity);
+          const rate = Number(item.total);
+
+          let inventory = await queryRunner.manager.findOne(RawMaterialInventory, {
+            where: { raw_material_id: rawMaterialId },
+          });
+
+          if (!inventory) {
+            inventory = queryRunner.manager.create(RawMaterialInventory, {
+              raw_material_id: rawMaterialId,
+              quantity_on_hand: qty,
+              value: rate,
+              valuation_method: ValuationMethod.FIFO
+            });
+          }
+
+          const newValue = qty * rate;
+
+          inventory.quantity_on_hand += qty;
+          inventory.value += newValue;
+
+          await queryRunner.manager.save(inventory);
+        }
+
+        let materialCost = 0;
+
+        // -------------------------------
+        // 1️⃣ SAFE MATERIAL COST CALCULATION
+        // -------------------------------
+        const details =
+          receiptWithRelations?.purchaseInvoice?.purchaseInvoiceDetails || [];
+
+        materialCost = details.reduce((sum, d) => {
+          const total =
+            Number(d.total) ||
+            Number(d.price) * Number(d.quantity) ||
+            0;
+
+          return sum + total;
+        }, 0);
+
+        // -------------------------------
+        // 2️⃣ TAX & OTHER CHARGES
+        // -------------------------------
+        const totalTax = Number(
+          receiptWithRelations.purchaseInvoice.taxAmount ?? 0,
+        );
+
+        const otherCharges =
+          Number(receiptWithRelations.purchaseInvoice.freightCost ?? 0) +
+          Number(receiptWithRelations.purchaseInvoice.importDuty ?? 0);
+
+        const finalCost = Number(
+          receiptWithRelations.purchaseInvoice.finalCost ?? 0,
+        );
+
+        // -------------------------------
+        // 3️⃣ CREATE ACCOUNT TRANSACTION
+        // -------------------------------
+        const transaction = queryRunner.manager.create(AccountTransaction, {
+          accountId: receiptWithRelations.purchaseInvoice.id,
+          referenceType: 'PURCHASE_INVOICE',
+          referenceId: receiptWithRelations.id,
+          voucher_no: `Radha/${new Date().getFullYear()}/PI/`,
+          voucher_amount: finalCost,
+          description: `Purchase Invoice ${receiptWithRelations.purchaseInvoice.invoiceNo}`,
+          transactionDate: receiptWithRelations.purchaseInvoice.invoiceDate,
+          createdBy: 1,
+        });
+
+        const savedTransaction = await queryRunner.manager.save(transaction);
+
+        // -------------------------------
+        // 4️⃣ GET ACCOUNT TYPES
+        // -------------------------------
+        const accountTypes = await this.accountTypeRepository.find({
+          where: [
+            { name: 'Inventory' },
+            { name: 'Freight & Import Duty' },
+            { name: 'GST Input' },
+            { name: 'Accounts Payable' },
+          ],
+          relations: ['group'],
+        });
+
+        const accountMap: Record<string, any> = {};
+
+        accountTypes.forEach(acc => {
+          accountMap[acc.name] = {
+            id: acc.id,
+            groupId: acc.group?.id,
+          };
+        });
+
+        // -------------------------------
+        // 5️⃣ GL MAPPINGS (DOUBLE ENTRY)
+        // -------------------------------
+        const glMappings = [
+          {
+            accountCode: 'INVENTORY',
+            debit: materialCost,
+            credit: 0,
+            description: `Inventory - ${receiptWithRelations.purchaseInvoice.description}`,
+            groupId: accountMap['Inventory']?.groupId,
+            accountTypeID: accountMap['Inventory']?.id,
+          },
+          {
+            accountCode: 'OTHER_CHARGES',
+            debit: otherCharges,
+            credit: 0,
+            description: `Freight & Import Duty - ${receiptWithRelations.purchaseInvoice.description}`,
+            groupId: accountMap['Freight & Import Duty']?.groupId,
+            accountTypeID: accountMap['Freight & Import Duty']?.id,
+          },
+          {
+            accountCode: 'GST_INPUT',
+            debit: totalTax,
+            credit: 0,
+            description: `GST Input - ${receiptWithRelations.purchaseInvoice.description}`,
+            groupId: accountMap['GST Input']?.groupId,
+            accountTypeID: accountMap['GST Input']?.id,
+          },
+          {
+            accountCode: 'ACCOUNTS_PAYABLE',
+            debit: 0,
+            credit: finalCost,
+            description: `Accounts Payable - ${receiptWithRelations.purchaseInvoice.description}`,
+            groupId: accountMap['Accounts Payable']?.groupId,
+            accountTypeID: accountMap['Accounts Payable']?.id,
+          },
+        ];
+
+        // -------------------------------
+        // 6️⃣ CREATE TRANSACTION DETAILS
+        // -------------------------------
+        const transactionDetails = glMappings.map(line =>
+          queryRunner.manager.create(AccountTransactionDetail, {
+            transaction: { id: savedTransaction.id }, // ✅ FIX
+            accountId:  receiptWithRelations.purchaseInvoice.id ,
+            accountGroup: line.groupId ? { id: line.groupId } : undefined,
+            accountType: line.accountTypeID ? { id: line.accountTypeID } : undefined,
+
+            accountCode: line.accountCode,
+            debit: line.debit,
+            credit: line.credit,
+            description: line.description,
+
+            // ❌ REMOVE THIS (unless column exists in entity)
+            // userId: 1,
+          }),
+        );
+
+        // -------------------------------
+        // 7️⃣ SAVE DETAILS
+        // -------------------------------
+        await queryRunner.manager.save(transactionDetails);
+
+
       }
 
       await queryRunner.commitTransaction();
       return savedReceipt;
+
     } catch (error) {
       await queryRunner.rollbackTransaction();
       throw error;
@@ -253,7 +409,6 @@ export class RawMaterialReceiptService {
       await queryRunner.release();
     }
   }
-
 
 
   //   "freightCost": 100,
@@ -286,7 +441,7 @@ export class RawMaterialReceiptService {
       await queryRunner.release();
     }
   }
-  
+
   async generateReceipt(id: string, res: any): Promise<any> {
     const receipt = await this.findOne(id);
     const rawMaterialArray = [

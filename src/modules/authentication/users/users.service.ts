@@ -89,7 +89,7 @@ export class UsersService {
     const { email, password } = user;
 
     const foundUser = await this.userRepository.findOne({
-      where: { email , status: true},
+      where: { email},
       relations: ['roles', 'permissions'],
     });
 

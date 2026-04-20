@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 /* eslint-disable @typescript-eslint/unbound-method */
 /* eslint-disable @typescript-eslint/no-unsafe-argument */
 import {
@@ -129,22 +131,9 @@ export class PaymentService {
           description: `${cashOrBank.name} payment`,
           accountId: dto.id,
         }),
-
-        // // Credit GST Input (Receivable)
-        // queryRunner.manager.create(AccountTransactionDetail, {
-        //   transaction: savedTransaction,
-        //   accountType: gstInput,
-        //   accountGroup: gstInput.group,
-        //   debit: 0,
-        //   credit: gstAmount,
-        //   description: 'GST Input (Receivable)',
-        //   accountId: dto.id,
-
-        // }),
       ];
       await queryRunner.manager.save(transactionDetails);
 
-      // 7️⃣ Update Invoice Status if fully paid
       if (dto.amount >= invoice.finalCost) {
         invoice.status = 'Paid';
         await queryRunner.manager.save(invoice);
@@ -370,20 +359,62 @@ async paymentSetteled(params: any = {}) {
 }
 
 
-  async findOne(id: string): Promise<Payment> {
-    const payment = await this.dataSource
-      .getRepository(Payment)
-      .findOne({
-        where: { id },
-        relations: ['invoice', 'accountType', 'details'],
-      });
+async findOne(id: string) {
+  const payment = await this.dataSource
+    .getRepository(Payment)
+    .createQueryBuilder('payment')
+    .leftJoinAndSelect('payment.invoice', 'invoice')
+    .leftJoinAndSelect('invoice.purchaseInvoiceDetails', 'purchaseInvoiceDetails')
+      .leftJoinAndSelect('purchaseInvoiceDetails.rawMaterial', 'rawMaterial') // ✅ ADD THIS
 
-    if (!payment) {
-      throw new NotFoundException(`Payment with ID "${id}" not found`);
-    }
+    .leftJoinAndSelect('payment.supplier', 'supplier')
+    .leftJoinAndSelect('payment.rawMaterialReceipt', 'rawMaterialReceipt')
+    .where('payment.id = :id', { id })
+    .getOne();
 
-    return payment;
+  if (!payment) {
+    throw new Error('Payment not found');
   }
+console.log("payment",payment.invoice.purchaseInvoiceDetails)
+  const paymentData = {
+    accountNo: payment.accountNo,
+    paymentDate: payment.paymentDate,
+ 
+
+    supplier: {
+      name: payment.supplier?.name,
+      phone: payment.supplier?.phone_no,
+      email: payment.supplier?.email,
+    },
+
+    invoice: {
+      invoiceNo: payment.invoice?.invoiceNo,
+      finalCost: payment.invoice?.finalCost,
+      details: payment.invoice?.purchaseInvoiceDetails?.map(d => ({
+        product: d?.rawMaterial.name,
+        quantity: d.quantity,
+        rate: d.taxAmount,
+        total: d.total,
+      })),
+    },
+
+    payment: {
+      amount: payment.amount,
+      mode: payment.paymentMode,
+      status: payment.status,
+      description: payment.description,
+    },
+
+    rawReceipt: {
+      receiptNo: payment.rawMaterialReceipt?.receipt_no,
+      status: payment.rawMaterialReceipt?.status,
+      paymentRemarks: payment.rawMaterialReceipt?.payment_remarks,
+
+    },
+  };
+
+  return paymentData;
+}
 
   async remove(id: string): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();

@@ -38,7 +38,6 @@ export class ProductionBatchService {
     const batch = this.batchRepository.create({
       batchNumber: batchNumber,
       productionDate: dto.productionDate,
-      productType: dto.productType,
       quantityProduced: dto.quantityProduced,
       createdBy: userId,
     });
@@ -118,7 +117,6 @@ export class ProductionBatchService {
     // }
 
     if (dto.productionDate !== undefined) batch.productionDate = dto.productionDate;
-    if (dto.productType !== undefined) batch.productType = dto.productType;
     if (dto.quantityProduced !== undefined) {
       if (dto.quantityProduced < 0) {
         throw new BadRequestException('Quantity produced cannot be negative');

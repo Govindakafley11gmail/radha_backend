@@ -31,49 +31,49 @@ export enum PaymentMode {
 @Entity('payments') // <--- table name explicitly
 export class Payment {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @Column({ type: 'decimal', precision: 15, scale: 2 })
-    amount: number;
+    amount!: number;
 
     @Column({ type: 'date' })
-    paymentDate: string;
+    paymentDate!: string;
 
     @Column({nullable: true})
-    paymentMode: string;
+    paymentMode!: string;
 
     @Column({ type: 'enum', enum: PaymentStatus, default: PaymentStatus.PENDING })
-    status: PaymentStatus;
+    status!: PaymentStatus;
 
     @ManyToOne(() => PurchaseInvoice, (invoice) => invoice.payments, { nullable: false })
-    invoice: PurchaseInvoice;
+    invoice!: PurchaseInvoice;
 
     @ManyToOne(() => AccountType)
-    accountType: AccountType; // Cash or Bank account
+    accountType!: AccountType; // Cash or Bank account
 
     @Column({ nullable: true })
-    referenceNumber: string; // cheque number, transaction ID, etc.
+    referenceNumber!: string; // cheque number, transaction ID, etc.
     @Column({ nullable: true })
-    supplierId: string;
+    supplierId!: string;
 
     @ManyToOne(() => Supplier, { nullable: true })
     @JoinColumn({ name: 'supplierId' })
-    supplier: Supplier;
+    supplier!: Supplier;
 
     @Column({ nullable: true })
-    description: string;
+    description!: string;
 
     @Column({ nullable: true })
-    accountNo: string;
+    accountNo!: string;
 
     @OneToMany(() => AccountTransactionDetail, detail => detail.payment)
-    details: AccountTransactionDetail[];
+    details!: AccountTransactionDetail[];
 
     @CreateDateColumn()
-    createdAt: Date;
+    createdAt!: Date;
 
     @UpdateDateColumn()
-    updatedAt: Date;
+    updatedAt!: Date;
 
     @ManyToOne(
         () => RawMaterialReceipt,
@@ -84,8 +84,8 @@ export class Payment {
  
 
     @Column({ default: false })
-    isDeleted: boolean;
+    isDeleted!: boolean;
 
     @Column({ type: 'text', nullable: true })
-    documentPath: string;
+    documentPath!: string;
 }

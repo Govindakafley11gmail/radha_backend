@@ -10,6 +10,7 @@ import { ProductionBatch } from 'src/modules/cost-accounting/ProductionCosting/p
 import { UpdateWipinventoryDto } from './dto/update-wipinventory.dto';
 import { AccountpostingService, CostEntry } from 'src/modules/public/accountposting/accountposting.service';
 import { Dispatch } from 'src/modules/public/dispatch/entities/dispatch.entity';
+import { RawMaterialInventory } from '../raw-material-inventory/entities/raw-material-inventory.entity';
 
 @Injectable()
 export class WipinventoryService {
@@ -45,6 +46,34 @@ export class WipinventoryService {
           'productUnitCosts',
         ],
       });
+      const rawMaterialCosts = batch?.rawMaterialCosts || [];
+      const inventoryRepo = queryRunner.manager.getRepository(RawMaterialInventory);
+
+      for (const item of rawMaterialCosts) {
+        const rawMaterialId = item.rawMaterial.id;
+        const usedQty = Number(item.usedQuantity);
+        // 1. find inventory for this raw material
+        const inventory = await inventoryRepo.findOne({
+          where: { raw_material_id: rawMaterialId },
+        });
+
+        if (!inventory) {
+          throw new Error(`Inventory not found for ${item.rawMaterial.name}`);
+        }
+        // 2. reduce quantity
+        const currentQty = Number(inventory.quantity_on_hand);
+        const newQty = currentQty - usedQty;
+        if (newQty < 0) {
+          throw new Error(
+            `Insufficient stock for ${item.rawMaterial.name}`
+          );
+        }
+
+        inventory.quantity_on_hand = newQty;
+
+        // 3. save
+        await inventoryRepo.save(inventory);
+      }
       const lastDispatch = await queryRunner.manager
         .createQueryBuilder(Dispatch, 'dispatch')
         .orderBy('dispatch.versionNo', 'DESC')
@@ -88,13 +117,13 @@ export class WipinventoryService {
 
       const totalCost = machineCost + laborCost + overheadCost;
 
-      console.log('Calculated Total Cost for WIP Posting:', totalCost);
       // 3️⃣ Create WIPInventory record
       const wip = queryRunner.manager.create(WIPInventory, {
         batch,
         quantity: batch.quantityProduced,
         cost: totalCost,
       });
+
       const savedWIP = await queryRunner.manager.save(wip);
       // 4️⃣ Prepare accounting entries
       const costEntries: CostEntry[] = [
@@ -106,14 +135,7 @@ export class WipinventoryService {
           referenceId: savedWIP.id,
           accountTypeName: 'Work In Progress',
         },
-        ...batch.machineUsageCosts.map(() => ({
-          accountId: savedWIP.id,
-          debit: 0,
-          credit: machineCost,
-          referenceType: 'MachineCost',
-          referenceId: savedWIP.id,
-          accountTypeName: 'Machine Expense',
-        })),
+    
         ...batch.laborCosts.map((l) => ({
           accountId: savedWIP.id,
           debit: 0,
@@ -122,6 +144,7 @@ export class WipinventoryService {
           referenceId: savedWIP.id,
           accountTypeName: 'Direct Labor',
         })),
+        
         ...batch.otherProductionCosts.map((o) => ({
           accountId: savedWIP.id, // Ledger for overheads
           debit: 0,
@@ -143,6 +166,8 @@ export class WipinventoryService {
 
       // 6️⃣ Commit transaction
       await queryRunner.commitTransaction();
+      console.log("batch")
+
       return savedWIP;
     } catch (error) {
       await queryRunner.rollbackTransaction();

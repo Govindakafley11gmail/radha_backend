@@ -20,16 +20,19 @@ async function bootstrap() {
 
   // ✅ Enable CORS
   app.enableCors({
-    origin: '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
+    origin: 'http://localhost:3001',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   const port = process.env.PORT || 3000;
-    app.use(cookieParser()); // ✅ add this
+  app.use(cookieParser()); // ✅ add this
 
   await app.listen(port);
 
   console.log(`🚀 Server running on http://localhost:${port}`);
 }
+
 
 bootstrap();

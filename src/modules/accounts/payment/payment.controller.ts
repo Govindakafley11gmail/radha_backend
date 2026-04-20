@@ -1,14 +1,18 @@
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { Controller, Get, Post, Body, Param, Delete, HttpStatus, Req } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Delete, HttpStatus, Req, Res } from '@nestjs/common';
 import { PaymentService } from './payment.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ResponseService } from 'src/common/response/response';
-
+import { PaymentReceiptPDFService } from './paymentReceipt';
+import type { Response } from 'express';
 const responseService = new ResponseService();
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService, private readonly paymentReceiptPDFService: PaymentReceiptPDFService) {}
 
   @Post()
   async create(@Body() createPaymentDto: CreatePaymentDto, @Req() req) {
@@ -53,6 +57,19 @@ export class PaymentController {
       );
     }
   }
+@Get('/download/:id')
+async generateReceipt(
+  @Param('id') id: string,
+  @Res() res: Response,
+) {
+  const receipt = await this.paymentService.findOne(id);
+
+  if (!receipt) {
+    return res.status(404).json({ message: 'Payment not found' });
+  }
+
+  return this.paymentReceiptPDFService.generatePDF(receipt, res);
+}
 
   @Get(':id')
   async findOne(@Param('id') id: string) {

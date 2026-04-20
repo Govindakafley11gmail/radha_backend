@@ -17,9 +17,6 @@ export class ProductionBatch {
   @Column({ name: 'production_date', type: 'date' })
   productionDate: Date;
 
-  @Column({ name: 'product_type' })
-  productType: string;
-
   @Column({ name: 'quantity_produced', type: 'decimal', precision: 12, scale: 2 })
   quantityProduced: number;
 

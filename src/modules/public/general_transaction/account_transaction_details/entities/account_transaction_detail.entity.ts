@@ -10,18 +10,18 @@ import { Payment } from 'src/modules/accounts/payment/entities/payment.entity';
 @Entity('account_transaction_details')
 export class AccountTransactionDetail {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => AccountTransaction, transaction => transaction.details, { onDelete: 'CASCADE' })
   @JoinColumn({ name: 'transaction_id' })
-  transaction: AccountTransaction;
+  transaction!: AccountTransaction;
 
 
   @Column({ type: 'varchar', length: 100, nullable: true })
   reference_no?: string;
 
   @Column()
-  accountId: string; // The GL account affected in this line item
+  accountId!: string; // The GL account affected in this line item
 
   // ---------------- Account Group ----------------
   @ManyToOne(() => AccountGroup)
@@ -36,22 +36,22 @@ export class AccountTransactionDetail {
 
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  debit: number;
+  debit!: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  credit: number;
+  credit!: number;
 
   @Column({ type: 'varchar', length: 200, nullable: true })
   description?: string;
 
   @Column({ default: false })
-  isDeleted: boolean;
+  isDeleted!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
   
 @ManyToOne(() => PurchaseInvoice, invoice => invoice.details, { nullable: true })
 @JoinColumn({ name: 'purchase_invoice_id' })

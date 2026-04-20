@@ -17,8 +17,6 @@ export class CreateProductionBatchDto {
   @Type(() => Date)
   productionDate: Date;
 
-  @IsString()
-  productType: string;
 
   @IsNumber()
   quantityProduced: number;

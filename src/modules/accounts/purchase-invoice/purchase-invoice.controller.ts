@@ -33,7 +33,7 @@ export class PurchaseInvoiceController {
     try {
       const userId = req.user.id; // <-- user ID from JWT payload
 
-      const invoice = await this.purchaseInvoiceService.createAndPostInvoice(createPurchaseInvoiceDto, userId);
+      const invoice = await this.purchaseInvoiceService.createAndPostInvoice(createPurchaseInvoiceDto);
       return responseService.success(invoice, 'Purchase invoice created successfully', HttpStatus.CREATED);
     } catch (error) {
       return responseService.error(

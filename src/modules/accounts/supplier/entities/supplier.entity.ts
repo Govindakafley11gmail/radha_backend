@@ -48,18 +48,18 @@ export class Supplier {
   expireDate?: Date;
 
   @Column({ default: false })
-  isDeleted: boolean;
+  isDeleted!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 
   // Relations
   @OneToMany(() => PurchaseInvoice, invoice => invoice.supplier)
-  purchaseInvoices: PurchaseInvoice[];
+  purchaseInvoices!: PurchaseInvoice[];
 
   @OneToMany(() => RawMaterialReceipt, receipt => receipt.supplier)
-  rawMaterialReceipts: RawMaterialReceipt[];
+  rawMaterialReceipts!: RawMaterialReceipt[];
 }

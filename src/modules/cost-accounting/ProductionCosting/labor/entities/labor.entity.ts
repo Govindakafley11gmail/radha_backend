@@ -20,41 +20,41 @@ export enum Gender {
 @Entity('labors')
 export class Labor {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  name: string;
+  name!: string;
 
   @Column({ unique: true })
-  identificationNo: string;
+  identificationNo!: string;
 
   @Column({ unique: true })
-  mobileNo: string;
+  mobileNo!: string;
 
   @Column({
     type: 'enum',
     enum: Gender,
   })
-  gender: Gender;
+  gender!: Gender;
 
   @Column()
-  age: number;
+  age!: number;
 
   @Column()
-  dzongkhag: string; // Location/Dzongkhag
+  dzongkhag!: string; // Location/Dzongkhag
 
   @Column({
     type: 'enum',
     enum: LaborType,
   })
-  type: LaborType;
+  type!: LaborType;
 
   @Column('decimal', { precision: 10, scale: 2 })
-  hourlyRate: number;
+  hourlyRate!: number;
 
   @OneToMany(
     () => LaborCost,
     (cost) => cost.labor,
   )
-  laborCosts: LaborCost[];
+  laborCosts!: LaborCost[];
 }

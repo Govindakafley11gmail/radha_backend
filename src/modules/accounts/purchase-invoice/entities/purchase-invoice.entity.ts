@@ -24,41 +24,41 @@ export enum MaterialType {
 @Entity('purchase_invoices')
 export class PurchaseInvoice {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ unique: true })
-  invoiceNo: string;
+  invoiceNo!: string;
 
   @Column({
     type: 'enum',
     enum: MaterialType,
   })
-  materialTypes: MaterialType;
+  materialTypes!: MaterialType;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  freightCost: number;
+  freightCost!: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  importDuty: number;
+  importDuty!: number;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  scrapCost: number; // optional field if you want to track scrap value
+  scrapCost!: number; // optional field if you want to track scrap value
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  materialCost: number; // sum of product totals without tax or charges
+  materialCost!: number; // sum of product totals without tax or charges
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  otherCharges: number; // freight + duty etc.
+  otherCharges!: number; // freight + duty etc.
 
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
-  finalCost: number; // materialCost + tax + otherCharges
+  finalCost!: number; // materialCost + tax + otherCharges
 
   @ManyToOne(() => Supplier, supplier => supplier.purchaseInvoices)
   @JoinColumn({ name: 'supplierId' })
-  supplier: Supplier;
+  supplier!: Supplier;
 
   @Column()
-  supplierId: string;
+  supplierId!: string;
 
   @OneToMany(
     () => PurchaseInvoiceDetail,
@@ -76,7 +76,7 @@ export class PurchaseInvoice {
   details?: AccountTransactionDetail[];
 
   @Column({ type: 'date' })
-  invoiceDate: Date;
+  invoiceDate!: Date;
 
   @Column({ type: 'decimal', precision: 15, scale: 2, nullable: true })
   taxAmount?: number;
@@ -91,17 +91,17 @@ export class PurchaseInvoice {
   status?: string;
 
   @Column({ default: false })
-  isDeleted: boolean;
+  isDeleted!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
   @OneToMany(() => Payment, payment => payment.invoice)
   payments?: Payment[];
 
   @OneToMany(() => TaxInvoice, (tax) => tax.purchaseInvoice)
-  taxInvoices: TaxInvoice[];
+  taxInvoices!: TaxInvoice[];
 }
 
