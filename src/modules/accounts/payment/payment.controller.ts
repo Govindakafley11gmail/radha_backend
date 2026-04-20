@@ -8,11 +8,12 @@ import { CreatePaymentDto } from './dto/create-payment.dto';
 import { ResponseService } from 'src/common/response/response';
 import { PaymentReceiptPDFService } from './paymentReceipt';
 import type { Response } from 'express';
+import { PaymentVoucherPDFService } from './paymentVoucher';
 const responseService = new ResponseService();
 
 @Controller('payment')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService, private readonly paymentReceiptPDFService: PaymentReceiptPDFService) {}
+  constructor(private readonly paymentService: PaymentService, private readonly paymentReceiptPDFService: PaymentReceiptPDFService,private readonly paymentVoucherPDFService: PaymentVoucherPDFService) {}
 
   @Post()
   async create(@Body() createPaymentDto: CreatePaymentDto, @Req() req) {
@@ -57,6 +58,19 @@ export class PaymentController {
       );
     }
   }
+  @Get('/download-voucher/:id')
+async generateVoucher(
+  @Param('id') id: string,
+  @Res() res: Response,
+) {
+  const receipt = await this.paymentService.findOne(id);
+
+  if (!receipt) {
+    return res.status(404).json({ message: 'Payment not found' });
+  }
+
+  return this.paymentVoucherPDFService.generatePDF(receipt, res);
+}
 @Get('/download/:id')
 async generateReceipt(
   @Param('id') id: string,
@@ -70,6 +84,8 @@ async generateReceipt(
 
   return this.paymentReceiptPDFService.generatePDF(receipt, res);
 }
+
+
 
   @Get(':id')
   async findOne(@Param('id') id: string) {
