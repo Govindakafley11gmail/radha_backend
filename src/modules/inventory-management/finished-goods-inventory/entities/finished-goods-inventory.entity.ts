@@ -5,34 +5,34 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 't
 @Entity()
 export class FinishedGoodsInventory {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column()
-  productType: string;
+  productType!: string;
 
   @Column({ type: 'decimal', default: 0 })
-  quantityOnHand: number;
+  quantityOnHand!: number;
 
   @Column({ type: 'decimal', default: 0 })
-  value: number;
+  value!: number;
 
   @Column({ type: 'decimal', default: 0 })
-  damagedQuantity: number;
+  damagedQuantity!: number;
 
   @Column({ type: 'decimal', default: 0 })
-  writeOffAmount: number;
+  writeOffAmount!: number;
 
   @ManyToOne(() => ProductionBatch, { eager: true })
   @JoinColumn({ name: 'productionBatchId' })
-  productionBatch: ProductionBatch;
+  productionBatch!: ProductionBatch;
 
   @ManyToOne(() => ProductUnitCost, { eager: true })
   @JoinColumn({ name: 'productUnitCostId' })
-  productUnitCost: ProductUnitCost;
+  productUnitCost!: ProductUnitCost;
 
   @Column()
-  createdBy: number;
+  createdBy!: number;
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-  createdAt: Date;
+  createdAt!: Date;
 }

@@ -12,7 +12,7 @@ import { ProductionBatch } from '../../production-batch/entities/production-batc
 @Entity('product_unit_costs')
 export class ProductUnitCost {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   // Link to Production Batch
   @ManyToOne(() => ProductionBatch, (batch) => batch.productUnitCosts, {
@@ -20,32 +20,32 @@ export class ProductUnitCost {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'batch_id' })
-  batch: ProductionBatch;
+  batch!: ProductionBatch;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  costPerKg: number;
+  costPerKg!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  costPerBox: number;
+  costPerBox!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  costPerNail: number;
+  costPerNail!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  processCuttingCost: number;
+  processCuttingCost!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  processHeadingCost: number;
+  processHeadingCost!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  processPolishingCost: number;
+  processPolishingCost!: number;
 
   @Column('decimal', { precision: 15, scale: 2 })
-  processPackingCost: number;
+  processPackingCost!: number;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

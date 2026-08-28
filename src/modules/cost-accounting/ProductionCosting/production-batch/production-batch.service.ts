@@ -34,6 +34,8 @@ export class ProductionBatchService {
     const totalBatches = await this.batchRepository.count();
     const nextNumber = totalBatches + 1; // next sequential number
     const batchNumber = `BATCH${nextNumber.toString().padStart(4, '0')}`;
+  
+    
     // Create the batch entity
     const batch = this.batchRepository.create({
       batchNumber: batchNumber,
@@ -41,6 +43,7 @@ export class ProductionBatchService {
       quantityProduced: dto.quantityProduced,
       createdBy: userId,
     });
+
 
     // Save batch to generate ID
     const savedBatch = await this.batchRepository.save(batch);

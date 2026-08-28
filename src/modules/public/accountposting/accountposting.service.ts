@@ -45,7 +45,7 @@ export class AccountpostingService {
     return this.dataSource.transaction(async (manager) => {
       // 1️⃣ Calculate voucher amount
       const voucherAmount = costEntries.reduce(
-        (sum, e) => sum + Math.max(e.debit, e.credit),
+        (sum, e) => sum + Math.max(e.debit),
         0,
       );
 

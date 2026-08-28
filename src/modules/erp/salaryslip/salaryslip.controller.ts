@@ -12,8 +12,6 @@ interface AuthRequest extends express.Request {
 export class SalaryslipController {
   constructor(private readonly salaryslipService: SalaryslipService) {}
 
- 
-
   @Get()
   findAll(@Req() req: AuthRequest) {
     return this.salaryslipService.findAll(req.user.id);

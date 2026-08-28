@@ -1,13 +1,18 @@
-import { IsString, IsNumber, IsOptional, IsDateString } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsDateString, IsNotEmpty } from 'class-validator';
 
 export class CreateAssetPaymentDto {
   @IsString()
-  paymentId: string; // the asset being paid
+  paymentId!: string; // the asset being paid
 
   @IsString()
-  assertId: string; // the asset being paid
-  @IsNumber()
-  amount: number;
+  assertId!: string; // the asset being paid
+  
+  @IsNumber(
+    { maxDecimalPlaces: 2 },
+    { message: 'Amount must be a valid decimal number' },
+  )
+  @IsNotEmpty()
+  amount!: number;
 
   @IsOptional()
   @IsDateString()
@@ -20,4 +25,7 @@ export class CreateAssetPaymentDto {
   @IsOptional()
   @IsString()
   description?: string;
+ @IsOptional()
+  @IsString()
+  chequeNumber!: string;
 }

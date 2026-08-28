@@ -9,32 +9,55 @@ import {
 @Entity({ name: 'fixed_assets' })
 export class FixedAsset {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
+
+  @Column({nullable: true})
+  assetType!: string;
 
   @Column()
-  assetName: string;
+  assetName!: string;
 
   @Column()
-  assetCode: string;
+  assetCode!: string;
 
   @Column({ type: 'decimal', precision: 15, scale: 2 })
-  purchaseCost: number;
+  purchaseCost!: number;
 
   @Column({ nullable: true })
-  gst: number;
+  gstApplicable!: string;
 
   @Column({ type: 'date' })
-  purchaseDate: Date;
+  purchaseDate!: Date;
 
-  @Column({nullable: true, default: 'Pending'})
-  status: string;
+  @Column({ nullable: true, default: 'Pending' })
+  status!: string;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  fridgeCost!: number;
+
+  @Column({
+    type: 'decimal',
+    precision: 10,
+    scale: 2,
+    nullable: true,
+  })
+  otherCost!: number;
+
+  @Column({ nullable: true })
+  description!: string;
+
 
   @Column({ default: false })
-  isDeleted: boolean;
+  isDeleted!: boolean;
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
 }

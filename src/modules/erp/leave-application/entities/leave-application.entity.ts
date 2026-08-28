@@ -12,40 +12,40 @@ export enum LeaveStatus {
 @Entity('leave_applications')
 export class LeaveApplication {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     @ManyToOne(() => User, { eager: true })
     @JoinColumn({ name: 'employee_id' })
-    employee: User;
+    employee!: User;
 
     @ManyToOne(() => LeaveType, { eager: true })
     @JoinColumn({ name: 'leave_type_id' })
-    leaveType: LeaveType;
+    leaveType!: LeaveType;
 
     @Column({ type: 'date' })
-    start_date: string;
+    start_date!: string;
 
     @Column({ type: 'date' })
-    end_date: string;
+    end_date!: string;
 
     @Column({ type: 'int' })
-    total_days: number;
+    total_days!: number;
 
     @Column({ type: 'text', nullable: true })
     reason?: string;
 
     @Column({ type: 'enum', enum: LeaveStatus, default: LeaveStatus.PENDING })
-    status: LeaveStatus;
+    status!: LeaveStatus;
 
     @Column({  nullable: true })
-    created_by: number;
+    created_by!: number;
 
     @Column({  nullable: true })
-    approved_by: number;
+    approved_by!: number;
 
     @CreateDateColumn()
-    created_at: Date;
+    created_at!: Date;
 
     @UpdateDateColumn()
-    updated_at: Date;
+    updated_at!: Date;
 }

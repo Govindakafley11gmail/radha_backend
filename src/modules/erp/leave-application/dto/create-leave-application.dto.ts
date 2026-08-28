@@ -5,19 +5,19 @@ export class CreateLeaveApplicationDto {
 
   @IsUUID()
   @IsNotEmpty()
-  leaveTypeId: string; // The type of leave (Annual, Sick, etc.)
+  leaveTypeId!: string; // The type of leave (Annual, Sick, etc.)
 
   @IsDateString()
   @IsNotEmpty()
-  start_date: string; // Leave start date
+  start_date!: string; // Leave start date
 
   @IsDateString()
   @IsNotEmpty()
-  end_date: string; // Leave end date
+  end_date!: string; // Leave end date
 
   @IsInt()
   @Min(1)
-  total_days: number; // Total leave days
+  total_days!: number; // Total leave days
 
   @IsString()
   @IsOptional()
@@ -25,5 +25,5 @@ export class CreateLeaveApplicationDto {
 
   @IsString()
   @IsOptional()
-  status: LeaveStatus;
+  status!: LeaveStatus;
 }

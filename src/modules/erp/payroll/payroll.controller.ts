@@ -22,7 +22,7 @@ export class PayrollController {
     try {
       const payroll = await this.payrollService.create(dto);
       return responseService.success(payroll, 'Payroll created successfully', HttpStatus.CREATED);
-    } catch (err) {
+    } catch (err: any) {
       return responseService.error(err.message, 'Failed to create payroll', HttpStatus.BAD_REQUEST);
     }
   }
@@ -32,7 +32,26 @@ export class PayrollController {
     try {
       const payrolls = await this.payrollService.findAll();
       return responseService.success(payrolls, 'Payrolls retrieved successfully', HttpStatus.OK);
-    } catch (err) {
+    } catch (err: any) {
+      return responseService.error(err.message, 'Failed to retrieve payrolls', HttpStatus.BAD_REQUEST);
+    }
+  }
+  @Get('approved')
+  async findApprovedAll() {
+    try{
+    const payroll = await this.payrollService.findApprovedAll();
+    return responseService.success(payroll, 'Approved Payrolls retrieved successfully', HttpStatus.OK);
+    } catch (err: any) {
+      return responseService.error(err.message, 'Failed to retrieve approved payrolls', HttpStatus.BAD_REQUEST);
+    }
+    }
+
+  @Get('pending')
+  async findPendingAll() {
+    try{
+    const payroll = await this.payrollService.findPendingAll();
+    return responseService.success(payroll, 'Payrolls retrieved successfully', HttpStatus.OK);
+    } catch (err: any) {
       return responseService.error(err.message, 'Failed to retrieve payrolls', HttpStatus.BAD_REQUEST);
     }
   }
@@ -42,7 +61,7 @@ export class PayrollController {
     try {
       const payroll = await this.payrollService.findOne(id);
       return responseService.success(payroll, 'Payroll retrieved successfully', HttpStatus.OK);
-    } catch (err) {
+    } catch (err: any) {
       return responseService.error(err.message, 'Payroll not found', HttpStatus.NOT_FOUND);
     }
   }
@@ -53,27 +72,28 @@ export class PayrollController {
     try {
       const payroll = await this.payrollService.submitForApproval(id);
       return responseService.success(payroll, 'Payroll submitted successfully', HttpStatus.OK);
-    } catch (err) {
+    } catch (err: any) {
       return responseService.error(err.message, 'Failed to submit payroll', HttpStatus.BAD_REQUEST);
     }
   }
+  
 
   @Patch('approve/:id')
   async approve(@Param('id') id: string, @Req() req: AuthRequest) {
     try {
       const payroll = await this.payrollService.approve(id, req.user.id);
       return responseService.success(payroll, 'Payroll approved successfully', HttpStatus.OK);
-    } catch (err) {
+    } catch (err: any) {
       return responseService.error(err.message, 'Failed to approve payroll', HttpStatus.BAD_REQUEST);
     }
   }
 
-  @Patch(':id/reject')
+  @Patch('reject/:id')
   async reject(@Param('id') id: string, @Req() req: AuthRequest, @Body('remarks') remarks: string) {
     try {
       const payroll = await this.payrollService.reject(id, req.user.id, remarks);
       return responseService.success(payroll, 'Payroll rejected successfully', HttpStatus.OK);
-    } catch (err) {
+    } catch (err: any) {
       return responseService.error(err.message, 'Failed to reject payroll', HttpStatus.BAD_REQUEST);
     }
   }

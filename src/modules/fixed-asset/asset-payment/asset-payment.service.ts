@@ -48,15 +48,16 @@ export class AssetPaymentService {
       const costEntries: CostEntry[] = [
         {
           accountId: asset.id, // Dr Cash/Bank
-          debit: dto.amount,
-          credit: 0,
+          debit: 0,
+          credit: dto.amount,
           accountTypeName: 'Bank',
           referenceId: savedPayment.id,
         },
+        
         {
           accountId: asset.id, // Cr Payable / Vendor
-          debit: 0,
-          credit: dto.amount,
+          debit: dto.amount,
+          credit: 0,
           accountTypeName: 'Accounts Payable',
           referenceId: savedPayment.id,
         },

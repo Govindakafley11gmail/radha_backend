@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Res } from '@nestjs/common';
+import { Controller, Post, Body } from '@nestjs/common';
 import type { Response } from 'express';
 import { LedgerReportService } from './ledger.service';
 import { LedgerReportDto } from './dto/create-ledger.dto';
@@ -21,7 +21,6 @@ export class LedgerController {
   @Post()
   async getLedgerReportPDF(
     @Body() body: LedgerReportDto,
-    @Res() res: Response, // 🔹 Express response for PDF streaming
   ) {
     const { accountTypeId, accountGroupId, startDate, endDate } = body;
     // 🔹 Wait for ledger report data
@@ -31,9 +30,6 @@ export class LedgerController {
       startDate,
       endDate,
     );
-    console.log('LedgerController -> getLedgerReportPDF -> reportData', reportData);
-
-    // 🔹 Generate PDF and send via response
-      return body.format === 'PDF' ? this.ledgerPDFService.generatePDF(reportData, res) : this.ledgerExcelService.generateExcel(reportData, res);
+   return reportData;
   }
 }

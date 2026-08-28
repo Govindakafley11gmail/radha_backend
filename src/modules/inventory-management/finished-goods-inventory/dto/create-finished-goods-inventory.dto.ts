@@ -2,23 +2,23 @@ import { IsNotEmpty, IsNumber } from 'class-validator';
 
 export class CreateFinishedGoodsInventoryDto {
   @IsNotEmpty()
-  productType: string;
+  productType!: string;
 
   @IsNumber()
-  quantityOnHand: number;
+  quantityOnHand!: number;
 
   @IsNumber()
-  value: number;
+  value!: number;
 
   @IsNumber()
-  damagedQuantity: number;
+  damagedQuantity!: number;
 
   @IsNumber()
-  writeOffAmount: number;
+  writeOffAmount!: number;
 
   @IsNotEmpty()
-  productionBatchId: string;
+  productionBatchId!: string;
 
-  @IsNotEmpty()
-  productUnitCostId: string;
+  // @IsNotEmpty()
+  // productUnitCostId!: string;
 }

@@ -5,8 +5,7 @@ import {
 } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
-import { AccountTransactionDetail } from
-  'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
+import { AccountTransactionDetail } from 'src/modules/public/general_transaction/account_transaction_details/entities/account_transaction_detail.entity';
 
 @Injectable()
 export class TrialService {
@@ -16,9 +15,10 @@ export class TrialService {
   ) {}
 
   /**
-   * Trial Balance
-   * Debit  = Positive balance
-   * Credit = Negative balance
+   * TRIAL BALANCE REPORT (ERP Standard)
+   * - Debit = total debit per account
+   * - Credit = total credit per account
+   * - No balance conversion (pure accounting view)
    */
   async generateTrialBalance(startDate?: string, endDate?: string) {
     try {
@@ -30,7 +30,7 @@ export class TrialService {
         .where('d.isDeleted = false')
         .andWhere('t.isDeleted = false');
 
-      // 🔹 Date filter
+      // ✅ Date filters
       if (startDate) {
         qb.andWhere('t.transactionDate >= :startDate', { startDate });
       }
@@ -38,39 +38,37 @@ export class TrialService {
       if (endDate) {
         qb.andWhere('t.transactionDate <= :endDate', { endDate });
       }
-      // 🔹 Aggregate per account
-      qb
-        .select('a.id', 'accountId')
+
+      // ✅ Aggregation (ERP standard)
+      qb.select('a.id', 'accountId')
         .addSelect('a.name', 'accountName')
-        .addSelect('SUM(COALESCE(d.debit,0))', 'totalDebit')
-        .addSelect('SUM(COALESCE(d.credit,0))', 'totalCredit')
+        .addSelect('SUM(COALESCE(d.debit, 0))', 'totalDebit')
+        .addSelect('SUM(COALESCE(d.credit, 0))', 'totalCredit')
         .groupBy('a.id')
         .addGroupBy('a.name')
         .orderBy('a.name', 'ASC');
 
       const rows = await qb.getRawMany();
 
-      // 🔹 Convert totals → balances
+      // ✅ Map results
       const accounts = rows.map((r) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const debit = Number(r.totalDebit);
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-        const credit = Number(r.totalCredit);
-        const balance = debit - credit;
+        const debit = Number(r.totalDebit) || 0;
+        const credit = Number(r.totalCredit) || 0;
+
         return {
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           accountId: r.accountId,
           accountName: r.accountName,
-          debit: balance > 0 ? balance : 0,
-          credit: balance < 0 ? Math.abs(balance) : 0,
+          debit,
+          credit,
         };
       });
 
-      // 🔹 Trial Balance totals
+      // ✅ Totals
       const totalDebit = accounts.reduce(
         (sum, a) => sum + a.debit,
         0,
       );
+
       const totalCredit = accounts.reduce(
         (sum, a) => sum + a.credit,
         0,
@@ -86,12 +84,14 @@ export class TrialService {
         totals: {
           debit: totalDebit,
           credit: totalCredit,
+          difference: totalDebit - totalCredit,
         },
+        
         isBalanced: totalDebit === totalCredit,
         accounts,
       };
     } catch (error) {
-      console.error(error);
+      console.error('Trial Balance Error:', error);
       throw new InternalServerErrorException(
         'Failed to generate trial balance',
       );

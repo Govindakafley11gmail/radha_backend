@@ -305,7 +305,7 @@ export class RawMaterialReceiptService {
           voucher_no: `Radha/${new Date().getFullYear()}/PI/`,
           voucher_amount: finalCost,
           description: `Purchase Invoice ${receiptWithRelations.purchaseInvoice.invoiceNo}`,
-          transactionDate: receiptWithRelations.purchaseInvoice.invoiceDate,
+          transactionDate: new Date(),
           createdBy: 1,
         });
 
@@ -377,7 +377,7 @@ export class RawMaterialReceiptService {
         const transactionDetails = glMappings.map(line =>
           queryRunner.manager.create(AccountTransactionDetail, {
             transaction: { id: savedTransaction.id }, // ✅ FIX
-            accountId:  receiptWithRelations.purchaseInvoice.id ,
+            accountId: receiptWithRelations.purchaseInvoice.id,
             accountGroup: line.groupId ? { id: line.groupId } : undefined,
             accountType: line.accountTypeID ? { id: line.accountTypeID } : undefined,
 
@@ -442,40 +442,66 @@ export class RawMaterialReceiptService {
     }
   }
 
-  async generateReceipt(id: string, res: any): Promise<any> {
-    const receipt = await this.findOne(id);
-    const rawMaterialArray = [
-      {
-        receiptId: receipt.id,
-        receiptNo: receipt.receipt_no,
+async generateReceipt(id: string, res: any): Promise<any> {
+  const receipt = await this.findOne(id);
 
-        supplier: {
-          id: receipt.supplier.supplier_id,
-          name: receipt.supplier.name,
-          phone: receipt.supplier.phone_no,
-          email: receipt.supplier.email,
-        },
+  const rawMaterialArray = [
+    {
+      receiptId: receipt.id,
+      receiptNo: receipt.receipt_no,
+      receivedDate: receipt.received_date,
 
-        invoice: {
-          id: receipt.purchaseInvoice.id,
-          invoiceNo: receipt.purchaseInvoice.invoiceNo,
-          invoiceDate: receipt.purchaseInvoice.invoiceDate,
-          finalCost: receipt.purchaseInvoice.finalCost,
-          taxAmount: receipt.purchaseInvoice.taxAmount,
-        },
-
-        remarks: receipt.payment_remarks,
-        documentPath: receipt.documentPath,
+      supplier: {
+        name: receipt.supplier?.name,
+        phone: receipt.supplier?.phone_no,
+        email: receipt.supplier?.email,
       },
-    ]
 
-    console.log("receipt", rawMaterialArray)
+      // ✅ NEW CLEAN STRUCTURE
+      invoice: {
+        invoiceNo: receipt.purchaseInvoice?.invoiceNo,
+        invoiceDate: receipt.purchaseInvoice?.invoiceDate,
+        finalCost: receipt.purchaseInvoice?.finalCost,
+        taxAmount: receipt.purchaseInvoice?.taxAmount,
 
-    await this.pdfService.generatePDF(rawMaterialArray, res);
+        details:
+          receipt.purchaseInvoice?.purchaseInvoiceDetails?.map((d) => {
+            const quantity = Number(d.quantity ?? 0);
+            const rate = Number(d.price ?? 0);
+            const freight = Number(d.freightCost ?? 0);
+            const gst = Number(d.taxAmount ?? 0);
 
+            const value = quantity * rate;
+            const total = value + freight + gst;
 
-    return receipt;
-  }
+            return {
+              product: d?.rawMaterial?.name,
+              code: d?.productCode,
+              unit: d?.rawMaterial?.unit ?? 'Nos',
+
+              quantity,
+              rate,
+              value,
+
+              freight,
+              gst,
+              total,
+            };
+          }) ?? [],
+      },
+
+      remarks: receipt.payment_remarks,
+    },
+  ];
+console.log("rawMaterialArray",rawMaterialArray.map((item)=>{
+  return item.invoice.details.map((item)=>{
+    return item.product
+  })
+}))
+  await this.pdfService.generatePDF(rawMaterialArray, res);
+
+  return receipt;
+}
   async downloadDocument(id: string): Promise<{ filePath: string; fileName: string | undefined }> {
     const receipt = await this.receiptRepository.findOne({ where: { id } });
     if (!receipt) throw new NotFoundException(`Receipt ${id} not found`);

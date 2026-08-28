@@ -11,22 +11,20 @@ import { CreatePurchaseInvoiceDetailDto } from '../../purchase-invoice/dto/creat
 
 export class CreatePurchaseInvoiceDto {
   @IsString()
-  invoiceNo: string;
+  invoiceNo!: string;
 
   @IsString()
-  supplierId: string;
+  supplierId!: string;
 
   @IsDate()
   @Type(() => Date)
-  invoiceDate: Date;
+  invoiceDate!: Date;
 
   @Type(() => Number)
   @IsNumber()
-  totalAmount: number;
+  totalAmount!: number;
 
-  @Type(() => Number)
-  @IsNumber()
-  taxAmount: number;
+ 
 
   @IsString()
   @IsOptional()
@@ -43,6 +41,10 @@ export class CreatePurchaseInvoiceDto {
   @IsString()
   @IsOptional()
   accountTypeId?: string;
+
+  @IsString()
+  @IsOptional()
+  freight!: string;
 
   // ✅ This allows sending an array of purchase invoice details
   @IsOptional()

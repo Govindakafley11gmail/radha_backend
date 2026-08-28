@@ -187,7 +187,7 @@ export class PayrollService {
         { name: 'Salary Expense' },
         { name: 'Provident Fund Payable' },
         { name: 'TDS Payable' },
-        { name: 'Bank' },
+        { name: 'Salary Payable' },
       ],
       relations: ['group'],
     });
@@ -201,7 +201,7 @@ export class PayrollService {
       { code: 'SALARY_EXPENSE', dr: payroll.totalAmount, cr: 0, name: 'Salary Expense' },
       { code: 'PF_PAYABLE', dr: 0, cr: pf, name: 'Provident Fund Payable' },
       { code: 'TDS_PAYABLE', dr: 0, cr: deductions, name: 'TDS Payable' },
-      { code: 'BANK', dr: 0, cr: netSalary, name: 'Bank' },
+      { code: 'Salary Payable', dr: 0, cr: netSalary, name: 'Salary Payable' },
     ];
 
     const details: AccountTransactionDetail[] = [];
@@ -264,17 +264,47 @@ export class PayrollService {
     return this.payrollRepo.save(payroll);
   }
 
-  async reject(id: string, approverId: number, remarks: string): Promise<Payroll> {
-    const payroll = await this.findOne(id);
-    if (payroll.status !== PayrollStatus.PENDING) {
-      throw new BadRequestException('Only PENDING payrolls can be rejected');
-    }
-    payroll.status = PayrollStatus.REJECTED;
-    payroll.approvedBy = approverId;
-    payroll.approvedAt = new Date();
-    payroll.remarks = remarks;
-    return this.payrollRepo.save(payroll);
+async reject(
+  id: string,
+  approverId: number,
+  remarks: string
+): Promise<Payroll> {
+
+  console.log("Rejecting payroll", { id, approverId, remarks });
+
+  const payroll = await this.payrollRepo.findOne({
+    where: { id },
+    relations: ["details"],
+  });
+
+  if (!payroll) {
+    throw new NotFoundException("Payroll not found");
   }
+
+  // ✅ VALIDATION
+  if (
+    payroll.status !== PayrollStatus.PENDING &&
+    payroll.status !== PayrollStatus.DRAFT
+  ) {
+    throw new BadRequestException(
+      "Only PENDING or DRAFT payrolls can be rejected"
+    );
+  }
+
+  // ✅ UPDATE PAYROLL
+  payroll.status = PayrollStatus.REJECTED;
+  payroll.approvedBy = approverId;
+  payroll.approvedAt = new Date();
+  payroll.remarks = remarks;
+
+  // ✅ SOFT DELETE DETAILS
+  await this.payrollDetailRepo.update(
+    { payrollId: id },
+    { isDeleted: true }
+  );
+
+  return this.payrollRepo.save(payroll);
+}
 
   async findOne(id: string): Promise<Payroll> {
     const payroll = await this.payrollRepo.findOne({
@@ -287,6 +317,22 @@ export class PayrollService {
   async findAll(): Promise<Payroll[]> {
     const payroll = await this.payrollRepo.find({
       where: { status: PayrollStatus.DRAFT }, // ✅ only DRAFT payrolls
+      relations: ['details', 'details.employee',
+      ]
+    });
+    return payroll;
+  }
+   async findPendingAll(): Promise<Payroll[]> {
+    const payroll = await this.payrollRepo.find({
+      where: { status: PayrollStatus.PENDING }, // ✅ only PENDING payrolls
+      relations: ['details', 'details.employee',
+      ]
+    });
+    return payroll;
+  }
+    async findApprovedAll(): Promise<Payroll[]> {
+    const payroll = await this.payrollRepo.find({
+      where: { status: PayrollStatus.APPROVED }, // ✅ only APPROVED payrolls
       relations: ['details', 'details.employee',
       ]
     });

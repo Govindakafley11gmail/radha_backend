@@ -117,7 +117,6 @@ export class WipinventoryService {
 
       const totalCost = machineCost + laborCost + overheadCost;
 
-      // 3️⃣ Create WIPInventory record
       const wip = queryRunner.manager.create(WIPInventory, {
         batch,
         quantity: batch.quantityProduced,

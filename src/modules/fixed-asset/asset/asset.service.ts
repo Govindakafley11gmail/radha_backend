@@ -1,6 +1,6 @@
 /* eslint-disable no-constant-condition */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import {  Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 import { CreateAssetDto } from './dto/create-asset.dto';
@@ -29,12 +29,10 @@ export class AssetService {
   /** ✅ Create asset with optional paid/credit accounting */
   async create(dto: CreateAssetDto): Promise<FixedAsset> {
     return await this.dataSource.transaction(async manager => {
-      // 1️⃣ Save asset
+      // Save asset
       const asset = manager.create(FixedAsset, dto);
+
       const savedAsset = await manager.save(asset);
-
-      // 2️⃣ Prepare accounting entries
-
 
       return savedAsset;
     });
@@ -102,22 +100,27 @@ export class AssetService {
       if (!asset) throw new NotFoundException('Asset not found');
 
       const isHead = roles.some(r => r.name === 'Head');
+      const isAdmin = roles.some(r => r.name === 'Admin');
+
       const isManager = roles.some(r => r.name === 'Manager');
 
       if (isHead) {
         asset.status = 'Verified';
-      } else if (isManager) {
+      } else if (isManager || isAdmin) {
         asset.status = 'Approved';
       }
 
       Object.assign(asset, dto);
 
       const savedAsset = await manager.save(asset);
-
       if (savedAsset.status === 'Approved') {
+           const purchaseCost = Number(savedAsset.purchaseCost);
+        const fridgeCost = Number(savedAsset.fridgeCost);
+        const otherCost = Number(savedAsset.otherCost);
+        console.log('Asset approved, creating payment and posting accounting entries...');
         const payment = manager.create(AssetPayment, {
           asset: savedAsset,
-          amount: savedAsset.purchaseCost,
+          amount: purchaseCost + fridgeCost + otherCost + (savedAsset.gstApplicable === 'YES' ? purchaseCost * 0.05 : 0),
           status: 'Approved',
           paymentDate: new Date().toISOString().split('T')[0],
           accountId: savedAsset, // ✅ correct account mapping
@@ -126,33 +129,53 @@ export class AssetService {
 
         await manager.save(payment);
 
-        // ===============================
-        // ✅ Accounting Entries
-        // ===============================
+     
+console.log('Calculated Costs:', { purchaseCost, fridgeCost, otherCost });
+        const gst =
+          savedAsset.gstApplicable === 'YES'
+            ? purchaseCost * 0.05
+            : 0;
+
+        const total = purchaseCost + fridgeCost + otherCost + gst;
+  console.log('Total Cost Calculation:', { total, gst });
         const costEntries: CostEntry[] = [
           {
-            accountId: savedAsset.id, // 🔥 Fixed Asset Account
-            debit: savedAsset.purchaseCost - savedAsset.gst,
+            accountId: savedAsset.id,
+            debit: purchaseCost,
             credit: 0,
-            accountTypeName: 'Assets',
+            accountTypeName: asset.assetType || '',
             referenceId: savedAsset.id,
           },
           {
-            accountId: savedAsset.id, // 🔥 GST Input Account
-            debit: savedAsset.gst,
+            accountId: savedAsset.id,
+            debit: fridgeCost,
+            credit: 0,
+            accountTypeName: 'Fridge Cost',
+            referenceId: savedAsset.id,
+          },
+          {
+            accountId: savedAsset.id,
+            debit: otherCost,
+            credit: 0,
+            accountTypeName: 'Other Costs',
+            referenceId: savedAsset.id,
+          },
+          {
+            accountId: savedAsset.id,
+            debit: gst,
             credit: 0,
             accountTypeName: 'GST Input',
             referenceId: savedAsset.id,
           },
           {
-            accountId: savedAsset.id, // 🔥 Payable / Bank
+            accountId: savedAsset.id,
             debit: 0,
-            credit: savedAsset.purchaseCost,
-            accountTypeName: 'Account Payable',
+            credit: total,
+            accountTypeName: 'Accounts Payable',
             referenceId: savedAsset.id,
           },
-        ].filter(e => e.debit > 0 || e.credit > 0);
-
+        
+        ].filter(e => Number(e.debit) > 0 || Number(e.credit) > 0);
         // ===============================
         // ✅ Post Accounting
         // ===============================
@@ -165,8 +188,6 @@ export class AssetService {
           );
         }
       }
-
-
       return savedAsset;
     });
   }

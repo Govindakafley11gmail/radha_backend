@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-wrapper-object-types */
-import { Body, Controller, Post, Res } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import type { Response } from 'express';
 import { PurchaseInvoiceReportService } from './purchase-invoice-report.service';
 import { PurchaseInvoiceReportPDFService } from './purchase_invoice_report';
@@ -21,7 +21,6 @@ export class PurchaseInvoiceReportController {
   @Post()
   async searchAndGeneratePdf(
     @Body() createPurchaseInvoiceDto: PurchaseInvoiceReportDto,
-    @Res() res: Response,
   ) {
     const { invoiceNo, supplierName, fromDate, toDate, status } =
       createPurchaseInvoiceDto;
@@ -34,12 +33,8 @@ export class PurchaseInvoiceReportController {
       toDate,
       status,
     });
-// return invoices;
-    // ✅ Pass real data + res
-    return this.pdfService.generatePDF(
-      invoices,
-      createPurchaseInvoiceDto,
-      res,
-    );
+
+    console.log('Fetched invoices:', invoices);
+   return invoices;
   }
 }

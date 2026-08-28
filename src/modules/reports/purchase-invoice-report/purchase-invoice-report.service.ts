@@ -4,8 +4,6 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { PurchaseInvoice } from 'src/modules/accounts/purchase-invoice/entities/purchase-invoice.entity';
-import * as ExcelJS from 'exceljs';
-import PDFDocument from 'pdfkit';
 import { Response } from 'express';
 
 @Injectable()
@@ -64,78 +62,5 @@ export class PurchaseInvoiceReportService {
         return await query.getMany();
     }
 
-    // =========================
-    // Export to Excel
-    // =========================
-    async exportToExcel(res: Response, search?: any): Promise<void> {
-        const invoices = await this.findAll(search);
-
-        const workbook = new ExcelJS.Workbook();
-        const worksheet = workbook.addWorksheet('Purchase Invoice Report');
-
-        worksheet.columns = [
-            { header: 'Invoice No', key: 'invoiceNo', width: 20 },
-            { header: 'Invoice Date', key: 'invoiceDate', width: 15 },
-            { header: 'Supplier', key: 'supplier', width: 25 },
-            { header: 'Status', key: 'status', width: 15 },
-            { header: 'Total Amount', key: 'totalAmount', width: 18 },
-        ];
-
-        invoices.forEach(inv => {
-            worksheet.addRow({
-                invoiceNo: inv.invoiceNo,
-                invoiceDate: inv.invoiceDate,
-                supplier: inv.supplier?.name,
-                status: inv.status,
-                totalAmount: inv.finalCost,
-            });
-        });
-
-        res.setHeader(
-            'Content-Type',
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        );
-        res.setHeader(
-            'Content-Disposition',
-            'attachment; filename=purchase_invoice_report.xlsx',
-        );
-
-        await workbook.xlsx.write(res);
-        res.end();
-    }
-
-    // =========================
-    // Export to PDF
-    // =========================
-    async exportToPdf(res: Response, search?: any): Promise<void> {
-        const invoices = await this.findAll(search);
-
-        const doc = new PDFDocument({ size: 'A4', margin: 40 });
-
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader(
-            'Content-Disposition',
-            'attachment; filename=purchase_invoice_report.pdf',
-        );
-
-        doc.pipe(res);
-
-        doc.fontSize(16).text('Purchase Invoice Report', { align: 'center' });
-        doc.moveDown();
-
-        invoices.forEach((inv, index) => {
-            doc
-                .fontSize(10)
-                .text(
-                    `${index + 1}. Invoice No: ${inv.invoiceNo}
-Supplier: ${inv.supplier?.name}
-Date: ${inv.invoiceDate.toISOString().split('T')[0]}
-Status: ${inv.status}
-Total: ${inv.finalCost}
------------------------------`,
-                );
-        });
-
-        doc.end();
-    }
+   
 }

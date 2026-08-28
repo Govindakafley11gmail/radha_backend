@@ -11,8 +11,8 @@ const responseService = new ResponseService();
 
 @Controller(Api_URL.user)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) {}
-
+  constructor(private readonly usersService: UsersService) { }
+  @Public()
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     try {
@@ -82,8 +82,8 @@ export class UsersController {
       );
     }
   }
-   @Public()
-   @Post('login')
+  @Public()
+  @Post('login')
   async login(
     @Body() loginDto: { email: string; password: string },
     @Res({ passthrough: true }) res: Response, // enable sending cookies
@@ -93,22 +93,25 @@ export class UsersController {
 
       // Set tokens in HttpOnly cookies
       // eslint-disable-next-line @typescript-eslint/no-unsafe-call
-      res.cookie('accessToken', accessToken, {
+
+      res.cookie('access_token', accessToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production', // HTTPS only in production
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 15 minutes
+        secure: false,
+        maxAge: 1000 * 60 *60,
         sameSite: 'lax',
+        path: '/',
       });
 
-      res.cookie('refreshToken', refreshToken, {
+      res.cookie('refresh_token', refreshToken, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        secure: false,
+        maxAge: 1000 * 10,
         sameSite: 'lax',
+        path: '/',
       });
       const data = { user, accessToken, refreshToken };
 
-      return responseService.success(data, 'Login successful', HttpStatus.OK);
+      return responseService.success(data, 'Login successfully', HttpStatus.OK);
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),

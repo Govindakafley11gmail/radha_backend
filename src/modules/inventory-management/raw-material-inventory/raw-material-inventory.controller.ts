@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import {
   Controller,
@@ -18,7 +19,7 @@ const responseService = new ResponseService();
 export class RawMaterialInventoryController {
   constructor(
     private readonly rawMaterialInventoryService: RawMaterialInventoryService,
-  ) {}
+  ) { }
 
   // ----------------------
   // CREATE INVENTORY
@@ -36,6 +37,23 @@ export class RawMaterialInventoryController {
       return responseService.error(
         error instanceof Error ? error.message : String(error),
         'Failed to create inventory',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+  @Post('find-all')
+  async findAllInventory(@Body() body: { startDate: string; endDate: string }) {
+    try {
+      const inventories = await this.rawMaterialInventoryService.findAll();
+      return responseService.success(
+        inventories,
+        'Fetched successfully',
+        HttpStatus.OK,
+      );
+    } catch (error) {
+      return responseService.error(
+        error instanceof Error ? error.message : String(error),
+        'Failed to fetch inventories',
         HttpStatus.BAD_REQUEST,
       );
     }
@@ -133,6 +151,7 @@ export class RawMaterialInventoryController {
       );
     }
   }
+
 
   // ----------------------
   // GET SINGLE INVENTORY

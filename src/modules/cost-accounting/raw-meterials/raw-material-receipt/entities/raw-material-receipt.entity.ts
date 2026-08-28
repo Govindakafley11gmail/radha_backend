@@ -8,7 +8,7 @@ import { RawMaterialInventory } from 'src/modules/inventory-management/raw-mater
 @Entity()
 export class RawMaterialReceipt {
     @PrimaryGeneratedColumn('uuid')
-    id: string;
+    id!: string;
 
     // Relations
     // @ManyToOne(() => RawMaterial)
@@ -16,50 +16,52 @@ export class RawMaterialReceipt {
     // rawMaterial: RawMaterial;
 
     @OneToMany(() => Payment, (payment) => payment.rawMaterialReceipt)
-    payments: Payment[];
+    payments!: Payment[];
 
     @ManyToOne(() => Supplier)
     @JoinColumn({ name: 'supplier_id' })
-    supplier: Supplier;
+    supplier!: Supplier;
 
     @ManyToOne(() => PurchaseInvoice)
     @JoinColumn({ name: 'purchase_invoice_id' })
-    purchaseInvoice: PurchaseInvoice;
+    purchaseInvoice!: PurchaseInvoice;
 
     @Column({ type: 'text', nullable: true })
     payment_remarks?: string;
     @Column({ type: 'timestamp', nullable: true })
 
-    received_date: Date;
-
+    received_date!: Date;
     @Column({ type: 'text', nullable: true })
 
-    paymentMode: string;
+    accountNo!: string;
+    @Column({ type: 'text', nullable: true })
+
+    paymentMode!: string;
     @Column({ type: 'boolean', default: false })
-    is_deleted: boolean;
+    is_deleted!: boolean;
 
     @Column({ nullable: true })
-    receipt_no: string;
+    receipt_no!: string;
 
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+    created_at!: Date;
 
     @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP', onUpdate: 'CURRENT_TIMESTAMP' })
-    updated_at: Date;
+    updated_at!: Date;
     @Column({ type: 'numeric', nullable: true })
 
-    total_cost: number;
+    total_cost!: number;
 
     @Column({ nullable: true })
     documentPath?: string;
 
     @Column({ nullable: true })
-    status: string;
+    status!: string;
 
     @ManyToOne(() => RawMaterialInventory, (inventory) => inventory.receipts, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'inventory_id' })
-    inventory: RawMaterialInventory;
+    inventory!: RawMaterialInventory;
 
     //   @OneToMany(
     //     () => PurchaseInvoiceDetail,

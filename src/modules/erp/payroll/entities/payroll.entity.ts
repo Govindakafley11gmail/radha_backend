@@ -1,60 +1,64 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn} from 'typeorm';
 import { PayrollDetail } from '../../payroll-details/entities/payroll-detail.entity';
 import { SalarySlip } from '../../salaryslip/entities/salaryslip.entity';
+import { PayrollPayment } from '../../payroll-payment/entities/payroll-payment.entity';
 
 export enum PayrollStatus {
   DRAFT = 'DRAFT',
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  PAID = 'PAID',
 }
 
 @Entity('payrolls')
 export class Payroll {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'date' })
-  payrollDate: Date;
+  payrollDate!: Date;
 
   @Column({ type: 'enum', enum: PayrollStatus, default: PayrollStatus.DRAFT })
-  status: PayrollStatus;
+  status!: PayrollStatus;
 
 
    @OneToMany(() => SalarySlip, slip => slip.payroll, {
     cascade: true,
   })
-  salarySlips: SalarySlip[]
+  salarySlips!: SalarySlip[]
   @Column({ nullable: true })
-  approvedBy: number;
+  approvedBy!: number;
 
   @Column({ nullable: true, type: 'timestamp' })
-  approvedAt: Date;
+  approvedAt!: Date;
 
   @Column({ nullable: true })
-  remarks: string;
+  remarks!: string;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  totalAmount: number;
+  totalAmount!: number;
 
   @Column({  nullable: true })
-  month: string;
+  month!: string;
 
   @Column({ type: 'integer', nullable: true })
-  year: number;
+  year!: number;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  totalDeduction: number;
+  totalDeduction!: number;
 
   @Column('decimal', { precision: 15, scale: 2, default: 0 })
-  totalAllowance: number;
+  totalAllowance!: number;
 
   @OneToMany(() => PayrollDetail, detail => detail.payroll, { cascade: true })
-  details: PayrollDetail[];
+  details!: PayrollDetail[];
 
   @CreateDateColumn()
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn()
-  updatedAt: Date;
+  updatedAt!: Date;
+@OneToMany(() => PayrollPayment, (payment) => payment.payroll)
+payments!: PayrollPayment[];
 }

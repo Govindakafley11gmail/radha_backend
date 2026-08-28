@@ -53,6 +53,9 @@ export class PurchaseInvoice {
   @Column({ type: 'decimal', precision: 15, scale: 2, default: 0 })
   finalCost!: number; // materialCost + tax + otherCharges
 
+  @Column({nullable: true})
+  gstApplicable!: string; // "Yes" or "No"
+
   @ManyToOne(() => Supplier, supplier => supplier.purchaseInvoices)
   @JoinColumn({ name: 'supplierId' })
   supplier!: Supplier;

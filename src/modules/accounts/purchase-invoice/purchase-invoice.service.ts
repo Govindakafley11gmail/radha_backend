@@ -48,7 +48,7 @@ export class PurchaseInvoiceService {
 
       // 2️⃣ Calculate totals
       let materialCost = 0;
-      let totalTax = createDto.GStTaxAmount ?? 0;
+      let totalTax = createDto.gstApplicable === 'Yes' ? createDto.totalAmount * 0.05 : 0;
       let otherCharges = (createDto.freightCost ?? 0) + (createDto.importDuty ?? 0);
 
       if (createDto.details?.length) {
@@ -56,6 +56,7 @@ export class PurchaseInvoiceService {
           materialCost += d.total ?? d.price * d.quantity;
         });
       }
+      
 
       const finalCost = materialCost + totalTax + otherCharges;
       // 3️⃣ Create purchase invoice
@@ -71,6 +72,7 @@ export class PurchaseInvoiceService {
         freightCost: createDto.freightCost,
         importDuty: createDto.importDuty,
         taxAmount: totalTax,
+        gstApplicable: createDto.gstApplicable,
         status: 'under_process',
         isDeleted: false,
       });
@@ -110,7 +112,9 @@ export class PurchaseInvoiceService {
             price: d.price,
             quantity: d.quantity,
             total: d.total ?? d.price * d.quantity,
-            taxAmount: d.taxAmount ?? 0,
+            taxAmount: createDto.gstApplicable === "Yes"
+              ? (Number(d.total) || 0) * 0.05
+              : 0,
           }),
         );
         await queryRunner.manager.save(detailEntities);
@@ -124,13 +128,15 @@ export class PurchaseInvoiceService {
             invoiceNumber: createDto.invoiceNo,
             totalAmount: d.total ?? d.price * d.quantity,
             invoiceDate: createDto.invoiceDate,
-            taxAmount: d.taxAmount ?? 0,
+            taxAmount: createDto.gstApplicable === "Yes"
+              ? (Number(d.total) || 0) * 0.05
+              : 0,
           }),
         );
         await queryRunner.manager.save(taxInvoiceEntities);
       }
 
-    
+
       await queryRunner.commitTransaction();
       return savedInvoice;
     } catch (error) {

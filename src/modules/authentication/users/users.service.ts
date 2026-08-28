@@ -103,16 +103,16 @@ export class UsersService {
       throw new UnauthorizedException('Invalid password');
     }
 
-    const payload = { id: foundUser.id, name: foundUser.name, email: foundUser.email , role: foundUser.roles, permission: foundUser.permissions };
+    const payload = { name: foundUser.name, email: foundUser.email , role: foundUser.roles };
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_SECRET || 'ACCESS_SECRET',
-      expiresIn: '1d',
+        expiresIn: '2000s', // ✅ 10 seconds
+
     });
 
     const refreshToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_REFRESH_SECRET || 'REFRESH_SECRET',
-      expiresIn: '7d',
     });
 
     return { user: foundUser, accessToken, refreshToken };

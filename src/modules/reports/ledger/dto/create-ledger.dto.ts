@@ -1,21 +1,22 @@
 // dto/ledger-report.dto.ts
-import {  IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {  IsDate, IsOptional, IsString } from 'class-validator';
 
 export class LedgerReportDto {
   @IsString()
-  accountTypeId: string;
+  accountTypeId!: string;
 
   @IsOptional()
   @IsString()
   accountGroupId?: string;
 
-  @IsOptional()
-  @IsString()
-  startDate?: string;
+  @Type(() => Date)
+  @IsDate()
+  startDate?: Date;
 
-  @IsOptional()
-  @IsString()
-  endDate?: string;
+  @Type(() => Date)
+  @IsDate()
+  endDate?: Date;
 
   @IsOptional()
   @IsString()

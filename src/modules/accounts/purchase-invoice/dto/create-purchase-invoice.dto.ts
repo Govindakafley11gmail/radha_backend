@@ -12,10 +12,10 @@ export class CreatePurchaseInvoiceDetailDto {
 
 
   @IsString()
-  productType: string;
+  productType!: string;
 
   @IsString()
-  productCode: string;
+  productCode!: string;
 
   @IsOptional()
   @IsString()
@@ -23,11 +23,11 @@ export class CreatePurchaseInvoiceDetailDto {
 
   @Type(() => Number)
   @IsNumber()
-  price: number;
+  price!: number;
 
   @Type(() => Number)
   @IsNumber()
-  quantity: number;
+  quantity!: number;
 
   @Type(() => Number)
   @IsOptional()
@@ -66,7 +66,7 @@ export class PurchaseInvoiceReportDto {
 }
 export class CreatePurchaseInvoiceDto {
   @IsString()
-  invoiceNo: string;
+  invoiceNo!: string;
 
   @IsOptional()
   @IsString()
@@ -74,7 +74,7 @@ export class CreatePurchaseInvoiceDto {
 
   @IsDate()
   @Type(() => Date)
-  invoiceDate: Date;
+  invoiceDate!: Date;
 
   @Type(() => Number)
   @IsOptional()
@@ -96,13 +96,14 @@ export class CreatePurchaseInvoiceDto {
 
   @Type(() => Number)
   @IsNumber()
-  totalAmount: number;
+  totalAmount!: number;
 
   @Type(() => Number)
   @IsOptional()
   @IsNumber()
   GStTaxAmount?: number;
-
+  @IsString()
+ gstApplicable!: string;
   @IsString()
   @IsOptional()
   description?: string;

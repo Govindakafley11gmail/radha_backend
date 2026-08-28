@@ -23,10 +23,13 @@ import { InventoryManagementModule } from './modules/inventory-management/invent
 import { ErpModule } from './modules/erp/erp.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { FixedAssetModule } from './modules/fixed-asset/fixed-asset.module';
+import { ScheduleModule } from '@nestjs/schedule';
 dotenv.config();
 
 @Module({
   imports: [
+        ScheduleModule.forRoot(), // ✅ REQUIRED for @Cron to work
+
     TypeOrmModule.forRoot({
       type: 'postgres',
       host: process.env.DB_HOST || 'localhost',

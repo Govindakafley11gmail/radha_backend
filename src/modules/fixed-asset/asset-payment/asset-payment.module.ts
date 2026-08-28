@@ -5,6 +5,7 @@ import { AssetPaymentController } from './asset-payment.controller';
 import { AssetPayment } from './entities/asset-payment.entity';
 import { FixedAsset } from '../asset/entities/asset.entity';
 import { AccountpostingModule } from 'src/modules/public/accountposting/accountposting.module';
+import { ReceiptPDFService } from './assertPaymentPDF';
 
 @Module({
   imports: [
@@ -12,6 +13,6 @@ import { AccountpostingModule } from 'src/modules/public/accountposting/accountp
     AccountpostingModule, // ✅ Import module providing AccountpostingService and its repositories
   ],
   controllers: [AssetPaymentController],
-  providers: [AssetPaymentService],
+  providers: [AssetPaymentService,ReceiptPDFService],
 })
 export class AssetPaymentModule {}

@@ -1,25 +1,42 @@
-import { IsNotEmpty, IsNumber, IsString, IsDateString, IsEmpty } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsString, IsDateString } from 'class-validator';
 
 export class CreateAssetDto {
-    @IsNotEmpty()
+ @IsNotEmpty()
     @IsString()
-    assetName: string;
+    assetType!: string;
 
     @IsNotEmpty()
     @IsString()
-    assetCode: string;
+    assetName!: string;
+
+    @IsNotEmpty()
+    @IsString()
+    assetCode!: string;
 
     @IsNotEmpty()
     @IsNumber()
-    purchaseCost: number;
+    purchaseCost!: number;
     @IsNotEmpty()
-    @IsNumber()
-    gst: number;
+    @IsString()
+    gstApplicable!: string;
 
     @IsNotEmpty()
     @IsDateString()
-    purchaseDate: Date;
+    purchaseDate!: Date;
+    @IsNumber(
+        { maxDecimalPlaces: 2 },
+        { message: 'Amount must be a valid decimal number' },
+    )
+    @IsNotEmpty()
+    fridgeCost!: number;
 
-    @IsEmpty()
-    status: string;
+    @IsNumber(
+        { maxDecimalPlaces: 2 },
+        { message: 'Amount must be a valid decimal number' },
+    )
+    @IsNotEmpty()
+    otherCost!: number;
+    @IsNotEmpty()
+    description!: string;
+
 }

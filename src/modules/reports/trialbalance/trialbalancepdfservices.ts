@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/no-unsafe-call */
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 
 import { Injectable } from '@nestjs/common';
 import * as puppeteer from 'puppeteer';
@@ -15,54 +15,173 @@ export class TrialBalancePDFService {
     const endDate = dateRange?.endDate ?? '-';
 
     const html = `
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 25px; color: #000; }
-          h1 { text-align: center; margin-bottom: 10px; font-size: 18px; }
-          h3 { text-align: center; margin-bottom: 20px; font-size: 14px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; }
-          th, td { border: 1px solid #000; padding: 5px; }
-          th { background-color: #f0f0f0; font-weight: bold; text-align: center; }
-          td { vertical-align: middle; }
-          .right { text-align: right; }
-          .center { text-align: center; }
-          .totals { font-weight: bold; background-color: #e0e0e0; }
-        </style>
-      </head>
-      <body>
-        <h1>TRIAL BALANCE REPORT</h1>
-        <h3>From: ${startDate} To: ${endDate}</h3>
+<html>
+<head>
+<style>
+  body {
+    font-family: "Segoe UI", Arial, sans-serif;
+    margin: 25px;
+    color: #111827;
+    font-size: 12px;
+  }
 
-        <table>
-          <tr>
-            <th>Account Name</th>
-            <th>Debit</th>
-            <th>Credit</th>
-          </tr>
-          ${accounts
-            .map(
-              (a) => `
+  .header {
+    text-align: center;
+    border-bottom: 3px solid #f97316;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+  }
+
+  .header h1 {
+    margin: 0;
+    font-size: 20px;
+    color: #f97316;
+  }
+
+  .header p {
+    margin: 4px 0;
+    font-size: 12px;
+    color: #9a3412;
+  }
+
+  .range {
+    text-align: center;
+    margin-bottom: 15px;
+    font-weight: bold;
+    color: #7c2d12;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+  }
+
+  th {
+    background: #f97316;
+    color: white;
+    padding: 10px;
+    font-size: 12px;
+    text-align: left;
+  }
+
+  td {
+    border: 1px solid #fed7aa;
+    padding: 8px;
+  }
+
+  tr:nth-child(even) {
+    background: #fff;
+  }
+
+  .right {
+    text-align: right;
+  }
+
+  .total-row {
+    background: #ffedd5 !important;
+    font-weight: bold;
+  }
+
+  .total-row td {
+    border-top: 2px solid #f97316;
+    font-size: 13px;
+  }
+
+  .footer {
+    margin-top: 30px;
+    text-align: center;
+    font-size: 11px;
+    color: #9a3412;
+  }
+</style>
+</head>
+
+<body>
+
+  <div class="header">
+    <h1>TRIAL BALANCE REPORT</h1>
+    <p>Financial Statement Generated from ERP System</p>
+  </div>
+
+  <div class="range">
+    From: ${startDate} &nbsp;&nbsp; | &nbsp;&nbsp; To: ${endDate}
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Group Name</th>
+        <th>Account Name</th>
+        <th class="right">Debit</th>
+        <th class="right">Credit</th>
+      </tr>
+    </thead>
+
+    <tbody>
+      ${
+        (() => {
+          let lastGroup = '';
+
+          return accounts?.map((a: any) => {
+            const isNewGroup = lastGroup !== a.groupName;
+            lastGroup = a.groupName;
+
+            return `
+              <tr>
+
+                <!-- GROUP NAME COLUMN (NO BORDER ON REPEAT) -->
+                <td style="${
+                  isNewGroup
+                    ? 'font-weight:600;'
+                    : 'border:none;'
+                }">
+                  ${isNewGroup ? (a.groupName ?? '-') : ''}
+                </td>
+
+                <!-- ACCOUNT NAME -->
+                <td>${a.accountName ?? '-'}</td>
+
+                <!-- DEBIT -->
+                <td class="right">
+                  ${Number(a.debit ?? 0).toFixed(2)}
+                </td>
+
+                <!-- CREDIT -->
+                <td class="right">
+                  ${Number(a.credit ?? 0).toFixed(2)}
+                </td>
+
+              </tr>
+            `;
+          }).join('') || `
             <tr>
-              <td>${a.accountName}</td>
-              <td class="right">${a.debit.toFixed(2)}</td>
-              <td class="right">${a.credit.toFixed(2)}</td>
+              <td colspan="4" class="right">No Data Available</td>
             </tr>
-          `,
-            )
-            .join('')}
-          <tr class="totals">
-            <td>Total</td>
-            <td class="right">${totals?.debit.toFixed(2)}</td>
-            <td class="right">${totals?.credit.toFixed(2)}</td>
-          </tr>
-        </table>
-      </body>
-    </html>
-    `;
+          `;
+        })()
+      }
+
+      <!-- TOTAL ROW -->
+      <tr class="total-row">
+        <td colspan="2">Total</td>
+        <td class="right">${Number(totals?.debit ?? 0).toFixed(2)}</td>
+        <td class="right">${Number(totals?.credit ?? 0).toFixed(2)}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="footer">
+    Generated by ERP System • Trial Balance Report
+  </div>
+
+</body>
+</html>
+`;
 
     const browser = await puppeteer.launch({ headless: true });
     const page = await browser.newPage();
+
     await page.setContent(html, { waitUntil: 'networkidle0' });
 
     const pdf = await page.pdf({

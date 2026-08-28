@@ -1,7 +1,19 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
-import { LeaveApplication, LeaveStatus } from './entities/leave-application.entity';
+import { Cron } from '@nestjs/schedule';
+
+import {
+  LeaveApplication,
+  LeaveStatus,
+} from './entities/leave-application.entity';
+
 import { CreateLeaveApplicationDto } from './dto/create-leave-application.dto';
 import { UpdateLeaveApplicationDto } from './dto/update-leave-application.dto';
 import { LeaveType } from '../leave-types/entities/leave-type.entity';
@@ -20,151 +32,203 @@ export class LeaveApplicationService {
     private readonly leaveTypeRepo: Repository<LeaveType>,
   ) {}
 
-  // ---------------------------
-  // Create leave application
-  // ---------------------------
-  async create(employeeId: number, createDto: CreateLeaveApplicationDto): Promise<LeaveApplication> {
-    const employee = await this.employeeRepo.findOne({ where: { id: employeeId } });
-    if (!employee) throw new NotFoundException(`Employee not found`);
+  // ---------------- CREATE ----------------
+  async create(employeeId: number, createDto: CreateLeaveApplicationDto) {
+    const employee = await this.employeeRepo.findOne({
+      where: { id: employeeId },
+    });
 
-    const leaveType = await this.leaveTypeRepo.findOne({ where: { id: createDto.leaveTypeId } });
-    if (!leaveType) throw new NotFoundException(`Leave type not found`);
+    if (!employee) throw new NotFoundException('Employee not found');
 
-    const leaveApplication = this.leaveApplicationRepo.create({
+    const leaveType = await this.leaveTypeRepo.findOne({
+      where: { id: createDto.leaveTypeId },
+    });
+
+    if (!leaveType) throw new NotFoundException('Leave type not found');
+
+    const leave = this.leaveApplicationRepo.create({
       employee,
       leaveType,
-      start_date: createDto.start_date,
-      end_date: createDto.end_date,
-      total_days: createDto.total_days,
-      reason: createDto.reason,
+      ...createDto,
       status: LeaveStatus.PENDING,
       created_by: employeeId,
     });
 
-    return this.leaveApplicationRepo.save(leaveApplication);
+    return this.leaveApplicationRepo.save(leave);
   }
 
-  // ---------------------------
-  // Get current year range
-  // ---------------------------
+  // ---------------- YEAR RANGE ----------------
   private getCurrentYearRange(): [string, string] {
     const now = new Date();
-    const start = new Date(now.getFullYear(), 0, 1); // Jan 1
-    const end = new Date(now.getFullYear(), 11, 31); // Dec 31
-    return [start.toISOString().split('T')[0], end.toISOString().split('T')[0]];
+
+    return [
+      new Date(now.getFullYear(), 0, 1).toISOString(),
+      new Date(now.getFullYear(), 11, 31).toISOString(),
+    ];
   }
 
-  // ---------------------------
-  // Get all leave applications for employee (current year)
-  // ---------------------------
-  async findAll(employeeId: number): Promise<LeaveApplication[]> {
-    const [startOfYear, endOfYear] = this.getCurrentYearRange();
+  // ---------------- FIND ALL ----------------
+  async findAll(employeeId: number) {
+    const [start, end] = this.getCurrentYearRange();
 
     return this.leaveApplicationRepo.find({
       where: {
         employee: { id: employeeId },
-        start_date: Between(startOfYear, endOfYear),
+        start_date: Between(start, end),
       },
       relations: ['employee', 'leaveType'],
     });
   }
 
-  // ---------------------------
-  // Leave balances (current year)
-  // ---------------------------
+  // ---------------- BALANCE ----------------
   async leavesBalance(employeeId: number) {
     const leaveTypes = await this.leaveTypeRepo.find();
-    const [startOfYear, endOfYear] = this.getCurrentYearRange();
+    const [start, end] = this.getCurrentYearRange();
 
-    const approvedLeaves = await this.leaveApplicationRepo.find({
+    const approved = await this.leaveApplicationRepo.find({
       where: {
         employee: { id: employeeId },
         status: LeaveStatus.APPROVED,
-        start_date: Between(startOfYear, endOfYear),
+        start_date: Between(start, end),
       },
       relations: ['leaveType'],
     });
 
     const usedMap: Record<string, number> = {};
-    approvedLeaves.forEach((leave) => {
-      const typeId = leave.leaveType.id;
-      usedMap[typeId] = (usedMap[typeId] || 0) + leave.total_days;
+
+    approved.forEach((l) => {
+      usedMap[l.leaveType.id] =
+        (usedMap[l.leaveType.id] || 0) + l.total_days;
     });
 
-    return leaveTypes.map((type) => ({
-      leaveTypeId: type.id,
-      leaveTypeName: type.name,
-      max_days: type.max_days,
-      used_days: usedMap[type.id] || 0,
-      remaining_days: type.max_days - (usedMap[type.id] || 0),
+    return leaveTypes.map((t) => ({
+      leaveTypeId: t.id,
+      leaveTypeName: t.name,
+      max_days: t.max_days,
+      used_days: usedMap[t.id] || 0,
+      remaining_days: t.max_days - (usedMap[t.id] || 0),
     }));
   }
 
-  // ---------------------------
-  // Get one leave application by ID (current year only)
-  // ---------------------------
-  async findOne(employeeId: number, id: string): Promise<LeaveApplication> {
-    const [startOfYear, endOfYear] = this.getCurrentYearRange();
+  // ---------------- FIND ONE ----------------
+  async findOne(employeeId: number, id: string) {
+    const [start, end] = this.getCurrentYearRange();
 
-    const leaveApplication = await this.leaveApplicationRepo.findOne({
+    const leave = await this.leaveApplicationRepo.findOne({
       where: {
         id,
         employee: { id: employeeId },
-        start_date: Between(startOfYear, endOfYear),
+        start_date: Between(start, end),
       },
       relations: ['employee', 'leaveType'],
     });
 
-    if (!leaveApplication)
-      throw new NotFoundException(`Leave application not found or you do not have access`);
-    return leaveApplication;
+    if (!leave) {
+      throw new NotFoundException('Leave not found');
+    }
+
+    return leave;
   }
 
-  // ---------------------------
-  // Update leave application
-  // ---------------------------
+  // ---------------- UPDATE ----------------
   async update(
     employeeId: number,
     id: string,
     updateDto: UpdateLeaveApplicationDto,
-    userRole: string,
-  ): Promise<LeaveApplication> {
-    const leaveApplication = await this.leaveApplicationRepo.findOne({
+    userRole: any[],
+  ) {
+    const leave = await this.leaveApplicationRepo.findOne({
       where: { id },
       relations: ['employee', 'leaveType'],
     });
-    if (!leaveApplication) throw new NotFoundException('Leave application not found');
 
-    // Employee updating own leave
-    if (!['HR', 'Manager'].includes(userRole)) {
-      if (leaveApplication.employee.id !== employeeId) {
-        throw new ForbiddenException('You cannot update this leave application');
+    if (!leave) throw new NotFoundException('Leave not found');
+
+    const roleNames = userRole?.map((r) => r.name) || [];
+
+    const isAdmin = roleNames.some((r) =>
+      ['HR', 'Manager', 'Admin'].includes(r),
+    );
+
+    if (!isAdmin) {
+      if (leave.employee.id !== employeeId) {
+        throw new ForbiddenException('Not allowed');
       }
-      const { reason, start_date, end_date, total_days } = updateDto;
-      leaveApplication.reason = reason ?? leaveApplication.reason;
-      leaveApplication.start_date = start_date ?? leaveApplication.start_date;
-      leaveApplication.end_date = end_date ?? leaveApplication.end_date;
-      leaveApplication.total_days = total_days ?? leaveApplication.total_days;
+
+      Object.assign(leave, updateDto);
+      leave.status = LeaveStatus.PENDING;
     } else {
-      // HR/Manager can approve/reject and update any field
-      if (updateDto.status && Object.values(LeaveStatus).includes(updateDto.status)) {
-        leaveApplication.status = updateDto.status;
-      } else if (updateDto.status) {
-        throw new ForbiddenException('Invalid status value');
+      Object.assign(leave, updateDto);
+
+      if (updateDto.status) {
+        leave.approved_by = employeeId;
       }
-      leaveApplication.approved_by = employeeId;
-      Object.assign(leaveApplication, updateDto);
     }
 
-    return this.leaveApplicationRepo.save(leaveApplication);
+    return this.leaveApplicationRepo.save(leave);
   }
 
-  // ---------------------------
-  // Delete leave application (only owner)
-  // ---------------------------
-  async remove(employeeId: number, id: string): Promise<{ message: string }> {
-    const leaveApplication = await this.findOne(employeeId, id);
-    await this.leaveApplicationRepo.remove(leaveApplication);
-    return { message: 'Leave application deleted successfully' };
+  // ---------------- DELETE ----------------
+  async remove(employeeId: number, id: string) {
+    const leave = await this.findOne(employeeId, id);
+
+    await this.leaveApplicationRepo.remove(leave);
+
+    return { message: 'Deleted successfully' };
+  }
+
+  // =====================================================
+  // 🔥 YEAR END CRON JOB (FIXED)
+  // =====================================================
+@Cron('* * * * *')
+  async handleYearEndTransfer() {
+    const employees = await this.employeeRepo.find();
+
+    for (const emp of employees) {
+      await this.transferSickToEarned(emp.id);
+    }
+
+    console.log('Year-end transfer completed');
+  }
+
+  // =====================================================
+  // 🔥 TRANSFER LOGIC (FIXED)
+  // =====================================================
+  async transferSickToEarned(employeeId: number) {
+    const types = await this.leaveTypeRepo.find();
+
+    const sick = types.find((t) =>
+      t.name.toLowerCase().includes('Sick Leave'),
+    );
+
+    const earned = types.find((t) =>
+      t.name.toLowerCase().includes('Annual Leave'),
+    );
+
+    if (!sick || !earned) return;
+
+    const [start, end] = this.getCurrentYearRange();
+
+    const sickLeaves = await this.leaveApplicationRepo.find({
+      where: {
+        employee: { id: employeeId },
+        leaveType: { id: sick.id },
+        status: LeaveStatus.APPROVED,
+        start_date: Between(start, end),
+      },
+    });
+
+    const used = sickLeaves.reduce(
+      (sum, l) => sum + l.total_days,
+      0,
+    );
+
+    const remaining = sick.max_days - used;
+
+    if (remaining <= 0) return;
+
+    console.log(
+      `Transferred ${remaining} Sick → Earned for employee ${employeeId}`,
+    );
   }
 }

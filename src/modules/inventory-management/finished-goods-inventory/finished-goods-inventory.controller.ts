@@ -7,7 +7,7 @@ import { ResponseService } from 'src/common/response/response';
 
 const responseService = new ResponseService();
 
-@Controller('finished-goods-inventory')
+@Controller('finish-goods-inventory')
 export class FinishedGoodsInventoryController {
   constructor(private readonly inventoryService: FinishedGoodsInventoryService) {}
 

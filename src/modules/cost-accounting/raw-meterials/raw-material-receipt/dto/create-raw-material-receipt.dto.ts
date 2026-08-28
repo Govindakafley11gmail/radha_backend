@@ -6,7 +6,7 @@ export class CreateRawMaterialReceiptDto {
 
   @IsNotEmpty()
   @IsString()
-  supplier_id: string;
+  supplier_id!: string;
 
   @IsOptional()
   @IsNumber()
@@ -15,7 +15,7 @@ export class CreateRawMaterialReceiptDto {
 
   @IsNotEmpty()
   @IsString()
-  purchase_invoice_id: string;
+  purchase_invoice_id!: string;
 
   @IsString()
   paymentMode?: string;
@@ -29,5 +29,5 @@ export class CreateRawMaterialReceiptDto {
 
   @IsOptional()
   @IsString()
-  payment_remarks: string;
+  payment_remarks!: string;
 }

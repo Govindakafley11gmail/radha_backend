@@ -6,51 +6,53 @@ import { User } from 'src/modules/authentication/users/entities/user.entity';
 @Entity('payroll_details')
 export class PayrollDetail {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @ManyToOne(() => Payroll, payroll => payroll.details)
   @JoinColumn({ name: 'payrollId' })
-  payroll: Payroll;
+  payroll!: Payroll;
 
   @Column()
-  payrollId: string;
+  payrollId!: string;
 
   @Column('decimal', { precision: 18, scale: 2, default: 0 })
-  housingAllowance: number;
+  housingAllowance!: number;
 
   @Column('decimal', { precision: 18, scale: 2, default: 0 })
-  providentFund: number;
+  providentFund!: number;
 
   @Column('decimal', { precision: 18, scale: 2, default: 0 })
-  otherAllowance: number;
+  otherAllowance!: number;
 
   @Column()
-  employeeId: number;
+  employeeId!: number;
 
   @Column('decimal', { precision: 18, scale: 2 })
-  basicSalary: number;
+  basicSalary!: number;
 
   @Column('decimal', { precision: 18, scale: 2, default: 0 })
-  allowances: number;
+  allowances!: number;
 
   @Column('decimal', { precision: 18, scale: 2, default: 0 })
-  deductions: number;
+  deductions!: number;
 
   @Column('decimal', { precision: 18, scale: 2 })
-  netSalary: number;
+  netSalary!: number;
 
   // Percent OR amount? Either way, 7,2 is safer
   @Column('decimal', { precision: 7, scale: 2, default: 0 })
-  tds: number;
+  tds!: number;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  medical: number;
+  medical!: number;
 
   @Column('decimal', { precision: 10, scale: 2, default: 0 })
-  providentInterest: number;
+  providentInterest!: number;
 
   @ManyToOne(() => User, { eager: true })
   @JoinColumn({ name: 'employeeId' })
-  employee: User;
+  employee!: User;
+  @Column({ nullable: true })
+  isDeleted!: boolean;
 }
 

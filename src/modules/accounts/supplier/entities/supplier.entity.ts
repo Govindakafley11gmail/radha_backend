@@ -12,10 +12,10 @@ import { RawMaterialReceipt } from 'src/modules/cost-accounting/raw-meterials/ra
 @Entity('suppliers')
 export class Supplier {
   @PrimaryGeneratedColumn('uuid')
-  supplier_id: string;
+  supplier_id!: string;
 
   @Column({ unique: true })
-  name: string;
+  name!: string;
 
   @Column({ nullable: true })
   phone_no?: string;

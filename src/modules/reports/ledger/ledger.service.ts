@@ -15,12 +15,13 @@ export class LedgerReportService {
   async generateLedgerReport(
     accountTypeId: string,
     accountGroupId?: string,
-    startDate?: string,
-    endDate?: string,
+    startDate?: Date,
+    endDate?: Date,
   ) {
     // Build query
        let openingBalance = 0;
     if (startDate) {
+      console.log('Calculating opening balance for accountTypeId:', accountTypeId, 'accountGroupId:', accountGroupId, 'startDate:', startDate);
       const opening = await this.dataSource
         .getRepository(AccountTransactionDetail)
         .createQueryBuilder('d')
@@ -48,7 +49,6 @@ export class LedgerReportService {
       .andWhere('g.id = :accountGroupId', { accountGroupId });
     // Filter by account group if provided
     if (accountTypeId) {
-
       qb.where('a.id = :accountTypeId', { accountTypeId })
         .andWhere('d.isDeleted = false')
         .andWhere('t.isDeleted = false');

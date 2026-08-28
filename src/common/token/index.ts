@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-// src/auth/jwt-auth.guard.ts
 import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
 import { IS_PUBLIC_KEY } from './decorator';
+import { TokenExpiredError, JsonWebTokenError } from 'jsonwebtoken';
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
@@ -18,20 +18,33 @@ export class JwtAuthGuard implements CanActivate {
       context.getClass(),
     ]);
 
-    if (isPublic) return true; // skip guard for public routes
+    if (isPublic) return true;
 
     const request = context.switchToHttp().getRequest();
-    const token = request.cookies?.accessToken;
-    if (!token) throw new UnauthorizedException('Access token missing');
+    const token = request.cookies?.access_token;
+   console.log("tokentoken",token)
+    if (!token) {
+      throw new UnauthorizedException('Access token missing');
+    }
 
     try {
       const payload = this.jwtService.verify(token, {
         secret: process.env.JWT_SECRET || 'ACCESS_SECRET',
       });
-      request.user = payload; // attach user info
+
+      request.user = payload;
       return true;
-    } catch {
-      throw new UnauthorizedException('Invalid or expired token');
+
+    } catch (error) {
+      if (error instanceof TokenExpiredError) {
+        throw new UnauthorizedException('Access token expired');
+      }
+
+      if (error instanceof JsonWebTokenError) {
+        throw new UnauthorizedException('Invalid access token');
+      }
+
+      throw new UnauthorizedException('Unauthorized');
     }
   }
 }
