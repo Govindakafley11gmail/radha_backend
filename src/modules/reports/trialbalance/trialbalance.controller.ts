@@ -11,6 +11,8 @@ import { TrialBalancePDFService } from './trialbalancepdfservices';
 @Controller('trialbalance')
 export class TrialbalanceController {
   constructor(
+
+    
     private readonly trialService: TrialService,
     private readonly pdfService: TrialBalancePDFService,
   ) { }
