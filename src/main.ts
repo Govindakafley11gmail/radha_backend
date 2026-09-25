@@ -23,7 +23,7 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
     }),
-  );
+  )
 
   // CORS: comma-separated list in CORS_ORIGIN, falls back to localhost for dev
   const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
