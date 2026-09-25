@@ -1,14 +1,15 @@
-/* eslint-disable @typescript-eslint/no-unsafe-call */
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AuthenticationModule } from './modules/authentication/authentication.module';
-
 import { JwtModule, JwtService } from '@nestjs/jwt';
 import { APP_GUARD, Reflector } from '@nestjs/core';
+import { ScheduleModule } from '@nestjs/schedule';
 import * as dotenv from 'dotenv';
+
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 import { JwtAuthGuard } from './common/token';
+
+import { AuthenticationModule } from './modules/authentication/authentication.module';
 import { PermissionModule } from './modules/authentication/permission/permission.module';
 import { RolesModule } from './modules/authentication/roles/roles.module';
 import { UsersModule } from './modules/authentication/users/users.module';
@@ -23,25 +24,40 @@ import { InventoryManagementModule } from './modules/inventory-management/invent
 import { ErpModule } from './modules/erp/erp.module';
 import { ReportsModule } from './modules/reports/reports.module';
 import { FixedAssetModule } from './modules/fixed-asset/fixed-asset.module';
-import { ScheduleModule } from '@nestjs/schedule';
+
 dotenv.config();
+
+const isProd = process.env.NODE_ENV === 'production';
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!process.env.JWT_SECRET) {
+  throw new Error('JWT_SECRET is not set');
+}
 
 @Module({
   imports: [
-        ScheduleModule.forRoot(), // ✅ REQUIRED for @Cron to work
+    ScheduleModule.forRoot(), // required for @Cron to work
 
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.DB_HOST || 'localhost',
-      port: Number(process.env.DB_PORT) || 5432,
-      username: process.env.DB_USERNAME || 'postgres',
-      password: process.env.DB_PASSWORD || 'password',
-      database: process.env.DB_NAME || 'mydb',
+      ...(databaseUrl
+        ? { url: databaseUrl }
+        : {
+            host: process.env.DB_HOST || 'localhost',
+            port: Number(process.env.DB_PORT) || 5432,
+            username: process.env.DB_USERNAME || 'postgres',
+            password: process.env.DB_PASSWORD || 'password',
+            database: process.env.DB_NAME || 'mydb',
+          }),
       autoLoadEntities: true,
-      synchronize: true,
+      // Set SYNC_DB=true only for the very first deploy to create tables, then remove it
+      synchronize: !isProd || process.env.SYNC_DB === 'true',
+      ssl: databaseUrl ? { rejectUnauthorized: false } : false,
+      extra: { max: 10 },
     }),
+
     JwtModule.register({
-      secret: process.env.JWT_SECRET || 'ACCESS_SECRET',
+      secret: process.env.JWT_SECRET,
       signOptions: { expiresIn: '15m' },
     }),
 
@@ -59,19 +75,16 @@ dotenv.config();
     InventoryManagementModule,
     ErpModule,
     ReportsModule,
-    FixedAssetModule
-    
+    FixedAssetModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
     {
       provide: APP_GUARD,
-      useFactory: (jwtService: JwtService, reflector: Reflector) => {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return new JwtAuthGuard(jwtService, reflector);
-      },
-      inject: [JwtService, Reflector], // ✅ inject JwtService, not JwtModule
+      useFactory: (jwtService: JwtService, reflector: Reflector) =>
+        new JwtAuthGuard(jwtService, reflector),
+      inject: [JwtService, Reflector],
     },
   ],
 })
