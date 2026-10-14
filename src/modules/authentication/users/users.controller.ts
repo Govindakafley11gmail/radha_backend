@@ -1,23 +1,52 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, HttpStatus, Res } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Patch,
+  Param,
+  Delete,
+  HttpStatus,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { ResponseService } from 'src/common/response/response';
 import Api_URL from 'src/router/authentication';
-import type { Response } from 'express'; // ✅ use 'import type'
+import type { Response, CookieOptions } from 'express';
 import { Public } from 'src/common/token/decorator';
 
 const responseService = new ResponseService();
 
+// Cookie settings:
+// - Production (Vercel frontend -> Render backend) is cross-site, so it needs
+//   SameSite=None and Secure=true.
+// - Local dev is same-site, so Lax without Secure works over http.
+const isProd = process.env.NODE_ENV === 'production';
+
+const baseCookieOptions: CookieOptions = {
+  httpOnly: true,
+  secure: isProd,
+  sameSite: isProd ? 'none' : 'lax',
+  path: '/',
+};
+
 @Controller(Api_URL.user)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
+
   @Public()
   @Post()
   async create(@Body() createUserDto: CreateUserDto) {
     try {
       const user = await this.usersService.create(createUserDto);
-      return responseService.success(user, 'User created successfully', HttpStatus.CREATED);
+      return responseService.success(
+        user,
+        'User created successfully',
+        HttpStatus.CREATED,
+      );
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),
@@ -31,7 +60,11 @@ export class UsersController {
   async findAll() {
     try {
       const users = await this.usersService.findAll();
-      return responseService.success(users, 'Users fetched successfully', HttpStatus.OK);
+      return responseService.success(
+        users,
+        'Users fetched successfully',
+        HttpStatus.OK,
+      );
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),
@@ -45,7 +78,11 @@ export class UsersController {
   async findOne(@Param('id') id: string) {
     try {
       const user = await this.usersService.findOne(+id);
-      return responseService.success(user, 'User fetched successfully', HttpStatus.OK);
+      return responseService.success(
+        user,
+        'User fetched successfully',
+        HttpStatus.OK,
+      );
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),
@@ -56,10 +93,17 @@ export class UsersController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  async update(
+    @Param('id') id: string,
+    @Body() updateUserDto: UpdateUserDto,
+  ) {
     try {
       const updatedUser = await this.usersService.update(+id, updateUserDto);
-      return responseService.success(updatedUser, 'User updated successfully', HttpStatus.OK);
+      return responseService.success(
+        updatedUser,
+        'User updated successfully',
+        HttpStatus.OK,
+      );
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),
@@ -73,7 +117,11 @@ export class UsersController {
   async remove(@Param('id') id: string) {
     try {
       await this.usersService.remove(+id);
-      return responseService.success(null, `User with id ${id} deleted successfully`, HttpStatus.OK);
+      return responseService.success(
+        null,
+        `User with id ${id} deleted successfully`,
+        HttpStatus.OK,
+      );
     } catch (error: unknown) {
       return responseService.error(
         error instanceof Error ? error.message : String(error),
@@ -82,41 +130,37 @@ export class UsersController {
       );
     }
   }
+
   @Public()
   @Post('login')
   async login(
     @Body() loginDto: { email: string; password: string },
-    @Res({ passthrough: true }) res: Response, // enable sending cookies
+    @Res({ passthrough: true }) res: Response, // lets us set cookies and still return a body
   ) {
     try {
-      const { user, accessToken, refreshToken } = await this.usersService.login(loginDto);
-
-      // Set tokens in HttpOnly cookies
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+      const { user, accessToken, refreshToken } =
+        await this.usersService.login(loginDto);
 
       res.cookie('access_token', accessToken, {
-        httpOnly: true,
-        secure: false,
-        maxAge: 1000 * 60 *60,
-        sameSite: 'lax',
-        path: '/',
+        ...baseCookieOptions,
+        maxAge: 1000 * 60 * 60, // 1 hour
       });
 
       res.cookie('refresh_token', refreshToken, {
-        httpOnly: true,
-        secure: false,
-        maxAge: 1000 * 10,
-        sameSite: 'lax',
-        path: '/',
+        ...baseCookieOptions,
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days (was 10 seconds)
       });
-      const data = { user, accessToken, refreshToken };
 
-      return responseService.success(data, 'Login successfully', HttpStatus.OK);
+      // Tokens stay in HttpOnly cookies only, not in the JSON body
+      return responseService.success(
+        { user },
+        'Login successfully',
+        HttpStatus.OK,
+      );
     } catch (error: unknown) {
-      return responseService.error(
-        error instanceof Error ? error.message : String(error),
-        'Login failed',
-        HttpStatus.UNAUTHORIZED,
+      // Throwing sets a real 401 status, unlike returning an error object
+      throw new UnauthorizedException(
+        error instanceof Error ? error.message : 'Login failed',
       );
     }
   }
