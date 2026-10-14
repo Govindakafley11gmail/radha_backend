@@ -36,6 +36,7 @@ async function bootstrap() {
   .map((o) => o.trim().replace(/\/+$/, '')) // strip trailing slashes
   .filter(Boolean);
 
+    
   app.enableCors({
     origin: (origin, callback) => {
       // allow non-browser clients (curl, Postman, health checks) with no Origin header
