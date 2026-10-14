@@ -27,7 +27,7 @@ async function bootstrap() {
   );
 
   // CORS: comma-separated list in CORS_ORIGIN, falls back to localhost for dev
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  const allowedOrigins = ('https://raddha-frontend.vercel.app/')
     .split(',')
     .map((o) => o.trim().replace(/\/+$/, '')) // strip trailing slashes
     .filter(Boolean);
