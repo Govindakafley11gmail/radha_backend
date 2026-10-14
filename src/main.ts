@@ -1,3 +1,4 @@
+import 'dotenv/config'; // must be first so env vars are loaded before anything else
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ValidationPipe, Logger } from '@nestjs/common';
@@ -26,12 +27,12 @@ async function bootstrap() {
       forbidNonWhitelisted: true,
       transform: true,
     }),
-  )
+  );
 
   // CORS: comma-separated list in CORS_ORIGIN, falls back to localhost for dev
-  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000')
+  const allowedOrigins = ('https://raddha-frontend.vercel.app/')
     .split(',')
-    .map((o) => o.trim())
+    .map((o) => o.trim().replace(/\/+$/, '')) // strip trailing slashes
     .filter(Boolean);
 
   app.enableCors({
@@ -40,7 +41,12 @@ async function bootstrap() {
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+      // Reject quietly (no CORS headers) instead of throwing, which caused the 500
+      Logger.warn(
+        `Blocked origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`,
+        'CORS',
+      );
+      return callback(null, false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
