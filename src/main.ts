@@ -20,17 +20,21 @@ async function bootstrap() {
   // DTO validation
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
+      whitelist: true, 
       forbidNonWhitelisted: true,
       transform: true,
     }),
   );
 
   // CORS: comma-separated list in CORS_ORIGIN, falls back to localhost for dev
-  const allowedOrigins = ('https://raddha-frontend.vercel.app/')
-    .split(',')
-    .map((o) => o.trim().replace(/\/+$/, '')) // strip trailing slashes
-    .filter(Boolean);
+  const allowedOrigins = [
+  'http://localhost:3000',                // local dev (CRA / Next)
+  'http://localhost:5173',                // local dev (Vite)
+  'https://raddha-frontend.vercel.app',   // deployed frontend, no trailing slash
+  ...(process.env.CORS_ORIGIN || '').split(','), // optional extras from Render env
+]
+  .map((o) => o.trim().replace(/\/+$/, '')) // strip trailing slashes
+  .filter(Boolean);
 
   app.enableCors({
     origin: (origin, callback) => {
